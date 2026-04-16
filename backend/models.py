@@ -18,6 +18,7 @@ class Dream(db.Model):
     content      = db.Column(db.Text, nullable=False)
     mood         = db.Column(db.String(50), default="neutral")
     is_anonymous = db.Column(db.Boolean, default=False)
+    image_url    = db.Column(db.String(300), default="")
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Like(db.Model):
@@ -46,3 +47,10 @@ class Streak(db.Model):
     user_id        = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     current_streak = db.Column(db.Integer, default=0)
     last_post_date = db.Column(db.Date, nullable=True)
+
+class Message(db.Model):
+    id          = db.Column(db.Integer, primary_key=True)
+    sender_id   = db.Column(db.Integer, db.ForeignKey('user.id'))
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    text        = db.Column(db.Text, nullable=False)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)

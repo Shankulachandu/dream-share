@@ -8,6 +8,8 @@ function CreateDream() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [tags, setTags]               = useState('');
   const [listening, setListening]     = useState(false);
+  const [image, setImage]             = useState(null);
+  const [preview, setPreview]         = useState(null);
   const navigate = useNavigate();
 
   const startVoice = () => {
@@ -24,19 +26,31 @@ function CreateDream() {
     rec.onerror = () => setListening(false);
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handlePost = async () => {
     const userId = localStorage.getItem('user_id');
     if (!userId) { navigate('/login'); return; }
     if (!content.trim()) { alert('Write your dream first!'); return; }
 
-    const tagList = tags.split(',').map(t => t.trim()).filter(t => t);
+    const formData = new FormData();
+    formData.append('user_id', userId);
+    formData.append('content', content);
+    formData.append('mood', mood);
+    formData.append('is_anonymous', isAnonymous);
+    formData.append('tags', tags);
+    if (image) {
+      formData.append('image', image);
+    }
 
-    await axios.post('http://127.0.0.1:5000/dream/create', {
-      user_id: parseInt(userId),
-      content,
-      mood,
-      is_anonymous: isAnonymous,
-      tags: tagList
+    await axios.post('http://127.0.0.1:5000/dream/create', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
 
     navigate('/');
@@ -82,6 +96,30 @@ function CreateDream() {
         onChange={e => setTags(e.target.value)}
         style={styles.input}
       />
+
+      <div style={styles.imageBox}>
+        <label style={styles.imageLabel}>
+          📸 Add an image to your dream
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
+        </label>
+
+        {preview && (
+          <div style={styles.previewBox}>
+            <img src={preview} alt="preview" style={styles.previewImg} />
+            <button
+              onClick={() => { setImage(null); setPreview(null); }}
+              style={styles.removeBtn}
+            >
+              ✕ Remove
+            </button>
+          </div>
+        )}
+      </div>
 
       <label style={styles.anonRow}>
         <input
@@ -157,6 +195,44 @@ const styles = {
     border: '1px solid #ddd',
     fontSize: '14px',
     marginBottom: '12px'
+  },
+  imageBox: {
+    marginBottom: '16px'
+  },
+  imageLabel: {
+    display: 'inline-block',
+    padding: '10px 18px',
+    background: '#f0f0ff',
+    color: '#6c63ff',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600',
+    border: '1px dashed #6c63ff'
+  },
+  previewBox: {
+    marginTop: '12px',
+    position: 'relative',
+    display: 'inline-block'
+  },
+  previewImg: {
+    width: '100%',
+    maxHeight: '200px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    display: 'block'
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: '8px',
+    right: '8px',
+    background: 'rgba(0,0,0,0.6)',
+    color: 'white',
+    border: 'none',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px'
   },
   anonRow: {
     display: 'flex',

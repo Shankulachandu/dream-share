@@ -1,26 +1,49 @@
 from flask import Blueprint, request, jsonify
 from models import db, Dream, Like, Comment, DreamTag, Streak, User
 from datetime import date, timedelta
+import os
+from werkzeug.utils import secure_filename
 
 dream_routes = Blueprint('dream', __name__)
 
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @dream_routes.route('/dream/create', methods=['POST'])
 def create_dream():
-    data = request.json
+    image_url = ""
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            unique_filename = f"{date.today()}_{filename}"
+            file.save(os.path.join(UPLOAD_FOLDER, unique_filename))
+            image_url = f"/uploads/{unique_filename}"
+
+    user_id      = int(request.form.get('user_id'))
+    content      = request.form.get('content')
+    mood         = request.form.get('mood', 'neutral')
+    is_anonymous = request.form.get('is_anonymous') == 'true'
+    tags_raw     = request.form.get('tags', '')
+    tags         = [t.strip() for t in tags_raw.split(',') if t.strip()]
 
     dream = Dream(
-        user_id=data['user_id'],
-        content=data['content'],
-        mood=data.get('mood', 'neutral'),
-        is_anonymous=data.get('is_anonymous', False)
+        user_id=user_id,
+        content=content,
+        mood=mood,
+        is_anonymous=is_anonymous,
+        image_url=image_url
     )
     db.session.add(dream)
     db.session.commit()
 
-    for tag in data.get('tags', []):
+    for tag in tags:
         db.session.add(DreamTag(dream_id=dream.id, tag=tag))
 
-    update_streak(data['user_id'])
+    update_streak(user_id)
     db.session.commit()
 
     return jsonify({"message": "Dream posted!", "dream_id": dream.id}), 201
@@ -40,6 +63,7 @@ def get_feed():
             "is_anonymous": d.is_anonymous,
             "username": "Anonymous Dreamer" if d.is_anonymous else user.username,
             "user_id": None if d.is_anonymous else d.user_id,
+            "image_url": d.image_url,
             "like_count": Like.query.filter_by(dream_id=d.id).count(),
             "comment_count": Comment.query.filter_by(dream_id=d.id).count()
         })
