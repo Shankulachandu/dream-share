@@ -4,13 +4,15 @@ from datetime import datetime
 db = SQLAlchemy()
 
 class User(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    username    = db.Column(db.String(100), unique=True, nullable=False)
-    email       = db.Column(db.String(100), unique=True, nullable=False)
-    password    = db.Column(db.String(200), nullable=False)
-    bio         = db.Column(db.String(300), default="")
-    profile_pic = db.Column(db.String(300), default="")
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    id                 = db.Column(db.Integer, primary_key=True)
+    username           = db.Column(db.String(100), unique=True, nullable=False)
+    email              = db.Column(db.String(100), unique=True, nullable=False)
+    password           = db.Column(db.String(200), nullable=False)
+    bio                = db.Column(db.String(300), default="")
+    profile_pic        = db.Column(db.String(300), default="")
+    last_seen_notif    = db.Column(db.DateTime, nullable=True)
+    last_seen_messages = db.Column(db.DateTime, nullable=True)
+    created_at         = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Dream(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
@@ -22,9 +24,10 @@ class Dream(db.Model):
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Like(db.Model):
-    id       = db.Column(db.Integer, primary_key=True)
-    user_id  = db.Column(db.Integer, db.ForeignKey('user.id'))
-    dream_id = db.Column(db.Integer, db.ForeignKey('dream.id'))
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'))
+    dream_id   = db.Column(db.Integer, db.ForeignKey('dream.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Comment(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
@@ -37,6 +40,7 @@ class Follower(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
     follower_id  = db.Column(db.Integer, db.ForeignKey('user.id'))
     following_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
 class DreamTag(db.Model):
     id       = db.Column(db.Integer, primary_key=True)
@@ -53,4 +57,5 @@ class Message(db.Model):
     sender_id   = db.Column(db.Integer, db.ForeignKey('user.id'))
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     text        = db.Column(db.Text, nullable=False)
+    is_read     = db.Column(db.Boolean, default=False)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
