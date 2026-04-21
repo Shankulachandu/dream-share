@@ -29,7 +29,7 @@ function DreamCard({ dream, onLike }) {
     const userId = localStorage.getItem('user_id');
     if (!userId) { alert('Login to like dreams!'); return; }
     await axios.post('http://127.0.0.1:5000/dream/like', {
-      user_id: parseInt(userId),
+      user_id:  parseInt(userId),
       dream_id: dream.id
     });
     setLiked(!liked);
@@ -50,9 +50,9 @@ function DreamCard({ dream, onLike }) {
     if (!userId) { alert('Login to comment!'); return; }
     if (!newComment.trim()) return;
     await axios.post('http://127.0.0.1:5000/dream/comment', {
-      user_id: parseInt(userId),
+      user_id:  parseInt(userId),
       dream_id: dream.id,
-      text: newComment
+      text:     newComment
     });
     setNewComment('');
     const res = await axios.get(`http://127.0.0.1:5000/dream/${dream.id}/comments`);
@@ -128,7 +128,16 @@ function DreamCard({ dream, onLike }) {
         <img
           src={`http://127.0.0.1:5000${dream.image_url}`}
           alt="dream"
-          style={styles.dreamImage}
+          style={styles.dreamMedia}
+        />
+      )}
+
+      {/* Dream video */}
+      {dream.video_url && (
+        <video
+          src={`http://127.0.0.1:5000${dream.video_url}`}
+          controls
+          style={styles.dreamMedia}
         />
       )}
 
@@ -190,9 +199,7 @@ function DreamCard({ dream, onLike }) {
               onKeyDown={e => e.key === 'Enter' && postComment()}
               style={styles.commentInput}
             />
-            <button onClick={postComment} style={styles.sendBtn}>
-              Send
-            </button>
+            <button onClick={postComment} style={styles.sendBtn}>Send</button>
           </div>
         </div>
       )}
@@ -205,11 +212,9 @@ const styles = {
     background: 'rgba(255, 255, 255, 0.05)',
     border: '1px solid rgba(255, 255, 255, 0.08)',
     borderRadius: '16px',
-    padding: '0',
     marginBottom: '20px',
     overflow: 'hidden',
-    backdropFilter: 'blur(10px)',
-    transition: 'transform 0.2s, box-shadow 0.2s'
+    backdropFilter: 'blur(10px)'
   },
   moodBar: {
     height: '3px',
@@ -267,7 +272,7 @@ const styles = {
     padding: '8px 16px 16px',
     margin: 0
   },
-  dreamImage: {
+  dreamMedia: {
     width: '100%',
     maxHeight: '320px',
     objectFit: 'cover',
@@ -315,8 +320,7 @@ const styles = {
     color: '#a0a0b0',
     padding: '6px 12px',
     borderRadius: '8px',
-    fontWeight: '500',
-    transition: 'all 0.2s'
+    fontWeight: '500'
   },
   interpretBtn: {
     background: 'rgba(108, 99, 255, 0.15)',

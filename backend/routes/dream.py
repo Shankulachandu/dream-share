@@ -7,21 +7,46 @@ from werkzeug.utils import secure_filename
 dream_routes = Blueprint('dream', __name__)
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+ALLOWED_IMAGE = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+ALLOWED_VIDEO = {'mp4', 'mov', 'avi', 'webm'}
+ALLOWED_EXTENSIONS = ALLOWED_IMAGE | ALLOWED_VIDEO
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_media_type(filename):
+    ext = filename.rsplit('.', 1)[1].lower()
+    if ext in ALLOWED_VIDEO:
+        return 'video'
+    return 'image'
 
 @dream_routes.route('/dream/create', methods=['POST'])
 def create_dream():
     image_url = ""
+    video_url = ""
+
+    # Handle image
     if 'image' in request.files:
         file = request.files['image']
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            unique_filename = f"{date.today()}_{filename}"
-            file.save(os.path.join(UPLOAD_FOLDER, unique_filename))
-            image_url = f"/uploads/{unique_filename}"
+            filename      = secure_filename(file.filename)
+            unique_name   = f"{date.today()}_{filename}"
+            file.save(os.path.join(UPLOAD_FOLDER, unique_name))
+            media_type = get_media_type(filename)
+            if media_type == 'video':
+                video_url = f"/uploads/{unique_name}"
+            else:
+                image_url = f"/uploads/{unique_name}"
+
+    # Handle video separately
+    if 'video' in request.files:
+        file = request.files['video']
+        if file and allowed_file(file.filename):
+            filename    = secure_filename(file.filename)
+            unique_name = f"video_{date.today()}_{filename}"
+            file.save(os.path.join(UPLOAD_FOLDER, unique_name))
+            video_url = f"/uploads/{unique_name}"
 
     user_id      = int(request.form.get('user_id'))
     content      = request.form.get('content')
@@ -35,7 +60,8 @@ def create_dream():
         content=content,
         mood=mood,
         is_anonymous=is_anonymous,
-        image_url=image_url
+        image_url=image_url,
+        video_url=video_url
     )
     db.session.add(dream)
     db.session.commit()
@@ -56,15 +82,16 @@ def get_feed():
     for d in dreams:
         user = User.query.get(d.user_id)
         result.append({
-            "id": d.id,
-            "content": d.content,
-            "mood": d.mood,
-            "created_at": d.created_at.isoformat(),
-            "is_anonymous": d.is_anonymous,
-            "username": "Anonymous Dreamer" if d.is_anonymous else user.username,
-            "user_id": None if d.is_anonymous else d.user_id,
-            "image_url": d.image_url,
-            "like_count": Like.query.filter_by(dream_id=d.id).count(),
+            "id":            d.id,
+            "content":       d.content,
+            "mood":          d.mood,
+            "created_at":    d.created_at.isoformat(),
+            "is_anonymous":  d.is_anonymous,
+            "username":      "Anonymous Dreamer" if d.is_anonymous else user.username,
+            "user_id":       None if d.is_anonymous else d.user_id,
+            "image_url":     d.image_url,
+            "video_url":     d.video_url,
+            "like_count":    Like.query.filter_by(dream_id=d.id).count(),
             "comment_count": Comment.query.filter_by(dream_id=d.id).count()
         })
     return jsonify(result), 200
@@ -77,12 +104,10 @@ def like_dream():
         user_id=data['user_id'],
         dream_id=data['dream_id']
     ).first()
-
     if existing:
         db.session.delete(existing)
         db.session.commit()
         return jsonify({"message": "Unliked"}), 200
-
     db.session.add(Like(user_id=data['user_id'], dream_id=data['dream_id']))
     db.session.commit()
     return jsonify({"message": "Liked!"}), 201
@@ -108,9 +133,9 @@ def get_comments(dream_id):
     for c in comments:
         user = User.query.get(c.user_id)
         result.append({
-            "id": c.id,
-            "text": c.text,
-            "username": user.username,
+            "id":         c.id,
+            "text":       c.text,
+            "username":   user.username,
             "created_at": c.created_at.isoformat()
         })
     return jsonify(result), 200
@@ -118,8 +143,7 @@ def get_comments(dream_id):
 
 def update_streak(user_id):
     streak = Streak.query.filter_by(user_id=user_id).first()
-    today = date.today()
-
+    today  = date.today()
     if not streak:
         db.session.add(Streak(user_id=user_id, current_streak=1, last_post_date=today))
     elif streak.last_post_date == today:

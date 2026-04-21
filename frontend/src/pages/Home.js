@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import DreamCard from '../components/DreamCard';
+import Stories from '../components/Stories';
 
 function Home() {
   const [dreams, setDreams]   = useState([]);
@@ -26,9 +27,11 @@ function Home() {
         <p style={styles.heroSub}>Explore dreams from around the world</p>
       </div>
 
+      {/* Stories at the top */}
+      <Stories />
+
       {loading ? (
         <div style={styles.loadingBox}>
-          <div style={styles.spinner} />
           <p style={styles.loadingText}>Loading dreams...</p>
         </div>
       ) : dreams.length === 0 ? (
@@ -54,8 +57,8 @@ const styles = {
   },
   hero: {
     textAlign: 'center',
-    marginBottom: '32px',
-    padding: '32px 0 16px'
+    marginBottom: '24px',
+    padding: '16px 0'
   },
   heroTitle: {
     fontSize: '32px',
@@ -71,15 +74,6 @@ const styles = {
   loadingBox: {
     textAlign: 'center',
     padding: '60px 0'
-  },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: '3px solid rgba(108, 99, 255, 0.2)',
-    borderTop: '3px solid #6c63ff',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    margin: '0 auto 16px'
   },
   loadingText: {
     color: '#6c63ff',

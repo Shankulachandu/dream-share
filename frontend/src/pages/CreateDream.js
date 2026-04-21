@@ -10,6 +10,7 @@ function CreateDream() {
   const [listening, setListening]     = useState(false);
   const [image, setImage]             = useState(null);
   const [preview, setPreview]         = useState(null);
+  const [isVideo, setIsVideo]         = useState(false);
   const [loading, setLoading]         = useState(false);
   const navigate = useNavigate();
 
@@ -29,7 +30,12 @@ function CreateDream() {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) { setImage(file); setPreview(URL.createObjectURL(file)); }
+    if (file) {
+      const video = file.type.startsWith('video/');
+      setIsVideo(video);
+      setImage(file);
+      setPreview(URL.createObjectURL(file));
+    }
   };
 
   const handlePost = async () => {
@@ -37,16 +43,25 @@ function CreateDream() {
     if (!userId) { navigate('/login'); return; }
     if (!content.trim()) { alert('Write your dream first!'); return; }
     setLoading(true);
+
     const formData = new FormData();
-    formData.append('user_id', userId);
-    formData.append('content', content);
-    formData.append('mood', mood);
+    formData.append('user_id',      userId);
+    formData.append('content',      content);
+    formData.append('mood',         mood);
     formData.append('is_anonymous', isAnonymous);
-    formData.append('tags', tags);
-    if (image) formData.append('image', image);
+    formData.append('tags',         tags);
+    if (image) {
+      if (isVideo) {
+        formData.append('video', image);
+      } else {
+        formData.append('image', image);
+      }
+    }
+
     await axios.post('http://127.0.0.1:5000/dream/create', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
+
     setLoading(false);
     navigate('/');
   };
@@ -69,18 +84,16 @@ function CreateDream() {
         {/* Voice button */}
         <button onClick={startVoice} style={{
           ...styles.voiceBtn,
-          background: listening
-            ? 'rgba(239, 68, 68, 0.2)'
-            : 'rgba(108, 99, 255, 0.15)',
-          borderColor: listening ? '#ef4444' : 'rgba(108, 99, 255, 0.4)',
-          color: listening ? '#ef4444' : '#a78bfa'
+          background:   listening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(108, 99, 255, 0.15)',
+          borderColor:  listening ? '#ef4444' : 'rgba(108, 99, 255, 0.4)',
+          color:        listening ? '#ef4444' : '#a78bfa'
         }}>
           {listening ? '🔴 Listening... speak now' : '🎤 Speak your dream'}
         </button>
 
         {/* Text area */}
         <textarea
-          placeholder="Describe your dream in detail... What did you see? How did it feel?"
+          placeholder="Describe your dream in detail..."
           value={content}
           onChange={e => setContent(e.target.value)}
           style={styles.textarea}
@@ -117,22 +130,27 @@ function CreateDream() {
           style={styles.input}
         />
 
-        {/* Image upload */}
+        {/* Media upload */}
         <div style={styles.imageBox}>
           <label style={styles.imageLabel}>
-            📸 Add an image
+            📸 Add image / 🎥 video
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               onChange={handleImageChange}
               style={{ display: 'none' }}
             />
           </label>
+
           {preview && (
             <div style={styles.previewBox}>
-              <img src={preview} alt="preview" style={styles.previewImg} />
+              {isVideo ? (
+                <video src={preview} style={styles.previewImg} controls />
+              ) : (
+                <img src={preview} alt="preview" style={styles.previewImg} />
+              )}
               <button
-                onClick={() => { setImage(null); setPreview(null); }}
+                onClick={() => { setImage(null); setPreview(null); setIsVideo(false); }}
                 style={styles.removeBtn}
               >✕</button>
             </div>
@@ -141,12 +159,13 @@ function CreateDream() {
 
         {/* Anonymous toggle */}
         <label style={styles.anonRow}>
-          <div style={{
-            ...styles.toggle,
-            background: isAnonymous
-              ? 'linear-gradient(135deg, #6c63ff, #a78bfa)'
-              : 'rgba(255,255,255,0.1)'
-          }}
+          <div
+            style={{
+              ...styles.toggle,
+              background: isAnonymous
+                ? 'linear-gradient(135deg, #6c63ff, #a78bfa)'
+                : 'rgba(255,255,255,0.1)'
+            }}
             onClick={() => setIsAnonymous(!isAnonymous)}
           >
             <div style={{
@@ -154,9 +173,7 @@ function CreateDream() {
               transform: isAnonymous ? 'translateX(20px)' : 'translateX(2px)'
             }} />
           </div>
-          <span style={styles.anonText}>
-            🕶️ Post anonymously
-          </span>
+          <span style={styles.anonText}>🕶️ Post anonymously</span>
         </label>
 
         {/* Post button */}
@@ -269,17 +286,17 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '600',
-    border: '1px dashed rgba(108, 99, 255, 0.4)',
-    transition: 'all 0.2s'
+    border: '1px dashed rgba(108, 99, 255, 0.4)'
   },
   previewBox: {
     marginTop: '12px',
     position: 'relative',
-    display: 'inline-block'
+    display: 'inline-block',
+    width: '100%'
   },
   previewImg: {
     width: '100%',
-    maxHeight: '200px',
+    maxHeight: '250px',
     objectFit: 'cover',
     borderRadius: '12px',
     display: 'block'
@@ -339,8 +356,7 @@ const styles = {
     borderRadius: '12px',
     fontSize: '16px',
     fontWeight: '700',
-    cursor: 'pointer',
-    letterSpacing: '0.3px'
+    cursor: 'pointer'
   }
 };
 

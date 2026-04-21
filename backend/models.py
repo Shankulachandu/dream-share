@@ -21,6 +21,7 @@ class Dream(db.Model):
     mood         = db.Column(db.String(50), default="neutral")
     is_anonymous = db.Column(db.Boolean, default=False)
     image_url    = db.Column(db.String(300), default="")
+    video_url    = db.Column(db.String(300), default="")
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Like(db.Model):
@@ -56,6 +57,22 @@ class Message(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     sender_id   = db.Column(db.Integer, db.ForeignKey('user.id'))
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    text        = db.Column(db.Text, nullable=False)
+    text        = db.Column(db.Text, nullable=True)
+    media_url   = db.Column(db.String(300), default="")
+    media_type  = db.Column(db.String(20), default="")
     is_read     = db.Column(db.Boolean, default=False)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Story(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    media_url  = db.Column(db.String(300), nullable=False)
+    media_type = db.Column(db.String(20), default="image")
+    caption    = db.Column(db.String(300), default="")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class StoryView(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    story_id   = db.Column(db.Integer, db.ForeignKey('story.id'))
+    viewer_id  = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

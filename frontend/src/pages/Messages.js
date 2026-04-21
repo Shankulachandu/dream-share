@@ -7,8 +7,8 @@ function Messages() {
   const [messages, setMessages] = useState([]);
   const [text, setText]         = useState('');
   const [otherUser, setOtherUser] = useState(null);
-  const myId     = localStorage.getItem('user_id');
-  const navigate = useNavigate();
+  const myId      = localStorage.getItem('user_id');
+  const navigate  = useNavigate();
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -44,8 +44,23 @@ function Messages() {
     loadMessages();
   };
 
+  const sendMedia = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('sender_id',   myId);
+    formData.append('receiver_id', userId);
+    formData.append('text',        '');
+    formData.append('media',       file);
+    await axios.post('http://127.0.0.1:5000/message/send', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    loadMessages();
+  };
+
   return (
     <div style={styles.container}>
+
       {/* Header */}
       <div style={styles.header}>
         <button onClick={() => navigate(-1)} style={styles.backBtn}>← Back</button>
@@ -67,6 +82,7 @@ function Messages() {
             <p style={styles.emptySub}>Say hello! 👋</p>
           </div>
         )}
+
         {messages.map(m => {
           const isMine = m.sender_id === parseInt(myId);
           return (
@@ -76,15 +92,31 @@ function Messages() {
             }}>
               <div style={{
                 ...styles.bubble,
-                background: isMine
-                  ? 'linear-gradient(135deg, #6c63ff, #a78bfa)'
-                  : 'rgba(255,255,255,0.08)',
-                color: isMine ? 'white' : '#e0e0e0',
+                background: m.media_url ? 'transparent' :
+                  isMine
+                    ? 'linear-gradient(135deg, #6c63ff, #a78bfa)'
+                    : 'rgba(255,255,255,0.08)',
+                color:   isMine ? 'white' : '#e0e0e0',
+                padding: m.media_url ? '0' : '10px 16px',
                 borderRadius: isMine
                   ? '18px 18px 4px 18px'
                   : '18px 18px 18px 4px'
               }}>
-                {m.text}
+                {m.media_url && m.media_type === 'image' && (
+                  <img
+                    src={`http://127.0.0.1:5000${m.media_url}`}
+                    alt="media"
+                    style={{ maxWidth: '220px', borderRadius: '12px', display: 'block' }}
+                  />
+                )}
+                {m.media_url && m.media_type === 'video' && (
+                  <video
+                    src={`http://127.0.0.1:5000${m.media_url}`}
+                    controls
+                    style={{ maxWidth: '220px', borderRadius: '12px', display: 'block' }}
+                  />
+                )}
+                {m.text && <span>{m.text}</span>}
               </div>
             </div>
           );
@@ -94,6 +126,15 @@ function Messages() {
 
       {/* Input */}
       <div style={styles.inputRow}>
+        <label style={styles.mediaBtn}>
+          📎
+          <input
+            type="file"
+            accept="image/*,video/*"
+            onChange={sendMedia}
+            style={{ display: 'none' }}
+          />
+        </label>
         <input
           placeholder="Type a message..."
           value={text}
@@ -189,7 +230,6 @@ const styles = {
   },
   bubble: {
     maxWidth: '70%',
-    padding: '10px 16px',
     fontSize: '14px',
     lineHeight: '1.5',
     wordBreak: 'break-word'
@@ -200,7 +240,22 @@ const styles = {
     padding: '12px 16px',
     background: 'rgba(15, 15, 26, 0.95)',
     borderTop: '1px solid rgba(108, 99, 255, 0.2)',
-    backdropFilter: 'blur(20px)'
+    backdropFilter: 'blur(20px)',
+    alignItems: 'center'
+  },
+  mediaBtn: {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#a78bfa',
+    width: '42px',
+    height: '42px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '18px',
+    flexShrink: 0
   },
   input: {
     flex: 1,

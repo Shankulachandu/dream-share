@@ -6,6 +6,7 @@ from models import db
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
 
 CORS(app)
 db.init_app(app)
@@ -16,11 +17,13 @@ from routes.auth import auth_routes
 from routes.dream import dream_routes
 from routes.user import user_routes
 from routes.ai import ai_routes
+from routes.story import story_routes
 
 app.register_blueprint(auth_routes)
 app.register_blueprint(dream_routes)
 app.register_blueprint(user_routes)
 app.register_blueprint(ai_routes)
+app.register_blueprint(story_routes)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):

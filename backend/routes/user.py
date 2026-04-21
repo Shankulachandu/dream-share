@@ -118,11 +118,38 @@ def get_insights(user_id):
 
 @user_routes.route('/message/send', methods=['POST'])
 def send_message():
-    data = request.json
+    media_url  = ""
+    media_type = ""
+
+    # Handle media file if sent
+    if request.files and 'media' in request.files:
+        file = request.files['media']
+        if file:
+            from werkzeug.utils import secure_filename
+            import os
+            from datetime import datetime
+            filename    = secure_filename(file.filename)
+            unique_name = f"msg_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
+            file.save(os.path.join('uploads', unique_name))
+            media_url  = f"/uploads/{unique_name}"
+            ext = filename.rsplit('.', 1)[-1].lower()
+            media_type = 'video' if ext in {'mp4', 'mov', 'avi'} else 'image'
+
+        sender_id   = int(request.form.get('sender_id'))
+        receiver_id = int(request.form.get('receiver_id'))
+        text        = request.form.get('text', '')
+    else:
+        data        = request.json
+        sender_id   = data['sender_id']
+        receiver_id = data['receiver_id']
+        text        = data.get('text', '')
+
     msg = Message(
-        sender_id=data['sender_id'],
-        receiver_id=data['receiver_id'],
-        text=data['text'],
+        sender_id=sender_id,
+        receiver_id=receiver_id,
+        text=text,
+        media_url=media_url,
+        media_type=media_type,
         is_read=False
     )
     db.session.add(msg)
@@ -147,6 +174,8 @@ def get_messages(user1, user2):
         "sender_id":   m.sender_id,
         "receiver_id": m.receiver_id,
         "text":        m.text,
+        "media_url":   m.media_url,
+        "media_type":  m.media_type,
         "created_at":  m.created_at.isoformat()
     } for m in msgs]), 200
 
