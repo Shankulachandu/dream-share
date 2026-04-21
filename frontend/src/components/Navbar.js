@@ -3,15 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function Navbar() {
-  const [unreadMessages, setUnreadMessages]         = useState(0);
+  const [unreadMessages, setUnreadMessages]           = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [menuOpen, setMenuOpen]                       = useState(false);
   const userId   = localStorage.getItem('user_id');
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!userId) return;
     fetchCounts();
-    // Check every 10 seconds automatically
     const interval = setInterval(fetchCounts, 10000);
     return () => clearInterval(interval);
   }, [userId]);
@@ -24,36 +24,31 @@ function Navbar() {
       ]);
       setUnreadMessages(msgRes.data.count);
       setUnreadNotifications(notifRes.data.count);
-    } catch (err) {
-      console.log('Could not fetch counts');
-    }
-  };
-
-  const handleMessagesClick = () => {
-    navigate('/conversations');
+    } catch (err) {}
   };
 
   return (
     <nav style={styles.nav}>
-      <Link to="/" style={styles.logo}>🌙 Dream Share</Link>
+      <Link to="/" style={styles.logo}>
+        <span style={styles.logoMoon}>🌙</span>
+        <span style={styles.logoText}>Dream Share</span>
+      </Link>
 
       <div style={styles.links}>
-        <Link to="/"       style={styles.link}>Feed</Link>
+        <Link to="/" style={styles.link}>Feed</Link>
         <Link to="/search" style={styles.link}>🔍 Search</Link>
 
         {userId ? (
           <>
-            <Link to="/create" style={styles.link}>+ Post</Link>
+            <Link to="/create" style={styles.createBtn}>+ Post Dream</Link>
 
-            {/* Messages icon with badge */}
-            <div style={styles.iconWrap} onClick={handleMessagesClick}>
+            <div style={styles.iconWrap} onClick={() => navigate('/conversations')}>
               <span style={styles.iconBtn}>💬</span>
               {unreadMessages > 0 && (
                 <span style={styles.badge}>{unreadMessages}</span>
               )}
             </div>
 
-            {/* Notifications icon with badge */}
             <div style={styles.iconWrap}>
               <Link to="/notifications" style={styles.iconBtn}>🔔</Link>
               {unreadNotifications > 0 && (
@@ -65,12 +60,12 @@ function Navbar() {
             <button onClick={() => {
               localStorage.clear();
               window.location.href = '/login';
-            }} style={styles.btn}>Logout</button>
+            }} style={styles.logoutBtn}>Logout</button>
           </>
         ) : (
           <>
-            <Link to="/login"    style={styles.link}>Login</Link>
-            <Link to="/register" style={styles.link}>Register</Link>
+            <Link to="/login" style={styles.link}>Login</Link>
+            <Link to="/register" style={styles.createBtn}>Join Free</Link>
           </>
         )}
       </div>
@@ -83,44 +78,69 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '12px 24px',
-    backgroundColor: '#0f0f1a',
-    color: 'white',
+    padding: '14px 32px',
+    background: 'rgba(15, 15, 26, 0.95)',
+    backdropFilter: 'blur(20px)',
+    borderBottom: '1px solid rgba(108, 99, 255, 0.2)',
     position: 'sticky',
     top: 0,
     zIndex: 100
   },
   logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    textDecoration: 'none'
+  },
+  logoMoon: {
+    fontSize: '24px'
+  },
+  logoText: {
     color: 'white',
-    textDecoration: 'none',
     fontSize: '20px',
-    fontWeight: 'bold'
+    fontWeight: '700',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent'
   },
   links: {
     display: 'flex',
-    gap: '16px',
+    gap: '8px',
     alignItems: 'center'
   },
   link: {
-    color: '#ccc',
+    color: '#a0a0b0',
     textDecoration: 'none',
-    fontSize: '14px'
+    fontSize: '14px',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    transition: 'all 0.2s',
+    fontWeight: '500'
+  },
+  createBtn: {
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
+    color: 'white',
+    textDecoration: 'none',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '600'
   },
   iconWrap: {
     position: 'relative',
     cursor: 'pointer',
     display: 'flex',
-    alignItems: 'center'
+    alignItems: 'center',
+    padding: '6px'
   },
   iconBtn: {
     fontSize: '20px',
-    textDecoration: 'none',
-    color: 'white'
+    textDecoration: 'none'
   },
   badge: {
     position: 'absolute',
-    top: '-8px',
-    right: '-8px',
+    top: '-2px',
+    right: '-2px',
     background: '#e74c3c',
     color: 'white',
     fontSize: '10px',
@@ -133,13 +153,14 @@ const styles = {
     justifyContent: 'center',
     border: '2px solid #0f0f1a'
   },
-  btn: {
-    background: 'none',
-    color: '#ccc',
-    border: '1px solid #444',
-    padding: '4px 12px',
-    borderRadius: '6px',
-    cursor: 'pointer'
+  logoutBtn: {
+    background: 'rgba(255,255,255,0.05)',
+    color: '#a0a0b0',
+    border: '1px solid rgba(255,255,255,0.1)',
+    padding: '6px 14px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '13px'
   }
 };
 

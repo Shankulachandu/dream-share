@@ -4,32 +4,51 @@ import { useNavigate } from 'react-router-dom';
 
 function Notifications() {
   const [notifications, setNotifications] = useState([]);
-  const myId = localStorage.getItem('user_id');
+  const [loading, setLoading]             = useState(true);
+  const myId     = localStorage.getItem('user_id');
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!myId) { navigate('/login'); return; }
     axios.get(`http://127.0.0.1:5000/notifications/${myId}`)
-         .then(res => setNotifications(res.data));
+         .then(res => { setNotifications(res.data); setLoading(false); });
   }, []);
+
+  const getIcon = (type) => {
+    if (type === 'like')   return '❤️';
+    if (type === 'follow') return '👤';
+    return '🔔';
+  };
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>🔔 Notifications</h2>
+      <div style={styles.hero}>
+        <h2 style={styles.title}>🔔 Notifications</h2>
+        <p style={styles.subtitle}>Your latest activity</p>
+      </div>
 
-      {notifications.length === 0 ? (
-        <p style={styles.empty}>No notifications yet.</p>
+      {loading ? (
+        <p style={styles.loading}>Loading...</p>
+      ) : notifications.length === 0 ? (
+        <div style={styles.empty}>
+          <p style={styles.emptyIcon}>🔔</p>
+          <p style={styles.emptyText}>No notifications yet</p>
+          <p style={styles.emptySub}>
+            When someone likes or follows you, it will show here.
+          </p>
+        </div>
       ) : (
         notifications.map((n, i) => (
           <div key={i} style={styles.card}>
-            <span style={styles.icon}>
-              {n.type === 'like' ? '❤️' : '👤'}
-            </span>
-            <div>
+            <div style={styles.iconBox}>{getIcon(n.type)}</div>
+            <div style={styles.info}>
               <p style={styles.message}>{n.message}</p>
               {n.preview && (
                 <p style={styles.preview}>"{n.preview}..."</p>
               )}
+              <p style={styles.time}>
+                {new Date(n.time).toLocaleDateString()}
+              </p>
             </div>
           </div>
         ))
@@ -41,42 +60,87 @@ function Notifications() {
 const styles = {
   container: {
     maxWidth: '600px',
-    margin: '32px auto',
-    padding: '0 16px'
+    margin: '0 auto',
+    padding: '32px 16px'
+  },
+  hero: {
+    textAlign: 'center',
+    marginBottom: '32px'
   },
   title: {
-    marginBottom: '24px',
-    color: '#1a1a2e'
+    color: 'white',
+    fontSize: '28px',
+    fontWeight: '700',
+    marginBottom: '6px'
+  },
+  subtitle: {
+    color: '#6b7280',
+    fontSize: '14px'
+  },
+  loading: {
+    textAlign: 'center',
+    color: '#6b7280',
+    padding: '40px'
   },
   empty: {
-    color: '#888',
     textAlign: 'center',
-    marginTop: '40px'
+    padding: '60px 0'
+  },
+  emptyIcon: {
+    fontSize: '48px',
+    marginBottom: '12px'
+  },
+  emptyText: {
+    color: 'white',
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  emptySub: {
+    color: '#6b7280',
+    fontSize: '13px',
+    marginTop: '6px'
   },
   card: {
     display: 'flex',
     alignItems: 'flex-start',
     gap: '14px',
-    background: '#fff',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.08)',
     padding: '16px',
-    borderRadius: '12px',
+    borderRadius: '16px',
     marginBottom: '10px',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
+    backdropFilter: 'blur(10px)'
   },
-  icon: {
-    fontSize: '22px',
-    flexShrink: 0
+  iconBox: {
+    fontSize: '24px',
+    flexShrink: 0,
+    width: '44px',
+    height: '44px',
+    background: 'rgba(108, 99, 255, 0.15)',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  info: {
+    flex: 1
   },
   message: {
     margin: 0,
     fontSize: '14px',
     fontWeight: '600',
-    color: '#222'
+    color: 'white'
   },
   preview: {
     margin: '4px 0 0',
     fontSize: '12px',
-    color: '#888'
+    color: '#6b7280',
+    fontStyle: 'italic'
+  },
+  time: {
+    margin: '4px 0 0',
+    fontSize: '11px',
+    color: '#4b5563'
   }
 };
 

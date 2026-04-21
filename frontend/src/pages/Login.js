@@ -6,99 +6,131 @@ function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    if (!username || !password) { setError('Please fill in all fields'); return; }
+    setLoading(true);
     try {
-      const res = await axios.post('http://127.0.0.1:5000/login', {
-        username,
-        password
-      });
+      const res = await axios.post('http://127.0.0.1:5000/login', { username, password });
       localStorage.setItem('user_id', res.data.user_id);
       localStorage.setItem('username', res.data.username);
       navigate('/');
     } catch (err) {
       setError('Invalid username or password');
     }
+    setLoading(false);
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>🌙 Login to Dream Share</h2>
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <div style={styles.logo}>🌙</div>
+        <h2 style={styles.title}>Welcome back</h2>
+        <p style={styles.subtitle}>Sign in to Dream Share</p>
 
-      <input
-        placeholder="Username"
-        value={username}
-        onChange={e => setUsername(e.target.value)}
-        style={styles.input}
-      />
-      <input
-        placeholder="Password"
-        type="password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        style={styles.input}
-      />
+        <input
+          placeholder="Username"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          style={styles.input}
+        />
+        <input
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          style={styles.input}
+        />
 
-      {error && <p style={styles.error}>{error}</p>}
+        {error && <p style={styles.error}>{error}</p>}
 
-      <button onClick={handleLogin} style={styles.btn}>Login</button>
+        <button onClick={handleLogin} style={styles.btn} disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign In'}
+        </button>
 
-      <p style={styles.bottom}>
-        Don't have an account?{' '}
-        <a href="/register" style={styles.link}>Register here</a>
-      </p>
+        <p style={styles.bottom}>
+          Don't have an account?{' '}
+          <a href="/register" style={styles.link}>Create one free</a>
+        </p>
+      </div>
     </div>
   );
 }
 
 const styles = {
-  container: {
+  page: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px'
+  },
+  card: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '24px',
+    padding: '40px',
+    width: '100%',
     maxWidth: '400px',
-    margin: '80px auto',
-    padding: '32px',
-    background: '#fff',
-    borderRadius: '16px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+    backdropFilter: 'blur(20px)',
+    textAlign: 'center'
+  },
+  logo: {
+    fontSize: '48px',
+    marginBottom: '16px'
   },
   title: {
-    textAlign: 'center',
-    marginBottom: '24px',
-    color: '#1a1a2e'
+    color: 'white',
+    fontSize: '24px',
+    fontWeight: '700',
+    marginBottom: '6px'
+  },
+  subtitle: {
+    color: '#6b7280',
+    fontSize: '14px',
+    marginBottom: '28px'
   },
   input: {
     display: 'block',
     width: '100%',
-    padding: '12px',
+    padding: '14px 16px',
     margin: '10px 0',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    fontSize: '15px'
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.05)',
+    color: 'white',
+    fontSize: '15px',
+    outline: 'none'
   },
   btn: {
     width: '100%',
-    padding: '12px',
-    background: '#6c63ff',
+    padding: '14px',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '12px',
     fontSize: '16px',
+    fontWeight: '600',
     cursor: 'pointer',
     marginTop: '8px'
   },
   error: {
-    color: 'red',
+    color: '#ef4444',
     fontSize: '13px',
-    marginTop: '4px'
+    marginTop: '8px'
   },
   bottom: {
-    textAlign: 'center',
-    marginTop: '16px',
+    marginTop: '20px',
     fontSize: '13px',
-    color: '#888'
+    color: '#6b7280'
   },
   link: {
-    color: '#6c63ff'
+    color: '#a78bfa',
+    fontWeight: '600'
   }
 };
 

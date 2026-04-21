@@ -5,107 +5,147 @@ import { useNavigate } from 'react-router-dom';
 function Register() {
   const [form, setForm]       = useState({ username: '', email: '', password: '' });
   const [message, setMessage] = useState('');
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleRegister = async () => {
+    if (!form.username || !form.email || !form.password) {
+      setError('Please fill in all fields'); return;
+    }
+    setLoading(true);
     try {
       await axios.post('http://127.0.0.1:5000/register', form);
-      setMessage('Account created! Redirecting to login...');
+      setMessage('Account created! Redirecting...');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
-      setMessage(err.response?.data?.error || 'Something went wrong');
+      setError(err.response?.data?.error || 'Something went wrong');
     }
+    setLoading(false);
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>🌙 Join Dream Share</h2>
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <div style={styles.logo}>🌙</div>
+        <h2 style={styles.title}>Join Dream Share</h2>
+        <p style={styles.subtitle}>Share your dreams with the world</p>
 
-      <input
-        name="username"
-        placeholder="Username"
-        onChange={handleChange}
-        style={styles.input}
-      />
-      <input
-        name="email"
-        placeholder="Email"
-        type="email"
-        onChange={handleChange}
-        style={styles.input}
-      />
-      <input
-        name="password"
-        placeholder="Password"
-        type="password"
-        onChange={handleChange}
-        style={styles.input}
-      />
+        <input
+          name="username"
+          placeholder="Username"
+          onChange={handleChange}
+          style={styles.input}
+        />
+        <input
+          name="email"
+          placeholder="Email address"
+          type="email"
+          onChange={handleChange}
+          style={styles.input}
+        />
+        <input
+          name="password"
+          placeholder="Password"
+          type="password"
+          onChange={handleChange}
+          onKeyDown={e => e.key === 'Enter' && handleRegister()}
+          style={styles.input}
+        />
 
-      {message && <p style={styles.message}>{message}</p>}
+        {error   && <p style={styles.error}>{error}</p>}
+        {message && <p style={styles.success}>{message}</p>}
 
-      <button onClick={handleRegister} style={styles.btn}>
-        Create Account
-      </button>
+        <button onClick={handleRegister} style={styles.btn} disabled={loading}>
+          {loading ? 'Creating account...' : 'Create Free Account'}
+        </button>
 
-      <p style={styles.bottom}>
-        Already have an account?{' '}
-        <a href="/login" style={styles.link}>Login here</a>
-      </p>
+        <p style={styles.bottom}>
+          Already have an account?{' '}
+          <a href="/login" style={styles.link}>Sign in</a>
+        </p>
+      </div>
     </div>
   );
 }
 
 const styles = {
-  container: {
+  page: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px'
+  },
+  card: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '24px',
+    padding: '40px',
+    width: '100%',
     maxWidth: '400px',
-    margin: '80px auto',
-    padding: '32px',
-    background: '#fff',
-    borderRadius: '16px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+    backdropFilter: 'blur(20px)',
+    textAlign: 'center'
+  },
+  logo: {
+    fontSize: '48px',
+    marginBottom: '16px'
   },
   title: {
-    textAlign: 'center',
-    marginBottom: '24px',
-    color: '#1a1a2e'
+    color: 'white',
+    fontSize: '24px',
+    fontWeight: '700',
+    marginBottom: '6px'
+  },
+  subtitle: {
+    color: '#6b7280',
+    fontSize: '14px',
+    marginBottom: '28px'
   },
   input: {
     display: 'block',
     width: '100%',
-    padding: '12px',
+    padding: '14px 16px',
     margin: '10px 0',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    fontSize: '15px'
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.05)',
+    color: 'white',
+    fontSize: '15px',
+    outline: 'none'
   },
   btn: {
     width: '100%',
-    padding: '12px',
-    background: '#6c63ff',
+    padding: '14px',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '12px',
     fontSize: '16px',
+    fontWeight: '600',
     cursor: 'pointer',
     marginTop: '8px'
   },
-  message: {
-    color: '#6c63ff',
+  error: {
+    color: '#ef4444',
     fontSize: '13px',
-    marginTop: '4px',
-    textAlign: 'center'
+    marginTop: '8px'
+  },
+  success: {
+    color: '#10b981',
+    fontSize: '13px',
+    marginTop: '8px'
   },
   bottom: {
-    textAlign: 'center',
-    marginTop: '16px',
+    marginTop: '20px',
     fontSize: '13px',
-    color: '#888'
+    color: '#6b7280'
   },
   link: {
-    color: '#6c63ff'
+    color: '#a78bfa',
+    fontWeight: '600'
   }
 };
 

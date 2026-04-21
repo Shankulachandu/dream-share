@@ -3,7 +3,7 @@ import axios from 'axios';
 import DreamCard from '../components/DreamCard';
 
 function Home() {
-  const [dreams, setDreams] = useState([]);
+  const [dreams, setDreams]   = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDreams = async () => {
@@ -17,18 +17,26 @@ function Home() {
     }
   };
 
-  useEffect(() => {
-    fetchDreams();
-  }, []);
+  useEffect(() => { fetchDreams(); }, []);
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.heading}>🌙 Dream Feed</h2>
+      <div style={styles.hero}>
+        <h1 style={styles.heroTitle}>Dream Feed 🌙</h1>
+        <p style={styles.heroSub}>Explore dreams from around the world</p>
+      </div>
 
       {loading ? (
-        <p>Loading dreams...</p>
+        <div style={styles.loadingBox}>
+          <div style={styles.spinner} />
+          <p style={styles.loadingText}>Loading dreams...</p>
+        </div>
       ) : dreams.length === 0 ? (
-        <p style={styles.empty}>No dreams yet. Be the first to post!</p>
+        <div style={styles.emptyBox}>
+          <p style={styles.emptyIcon}>🌙</p>
+          <p style={styles.emptyText}>No dreams yet.</p>
+          <p style={styles.emptySub}>Be the first to share your dream!</p>
+        </div>
       ) : (
         dreams.map(dream => (
           <DreamCard key={dream.id} dream={dream} onLike={fetchDreams} />
@@ -40,18 +48,60 @@ function Home() {
 
 const styles = {
   container: {
-    maxWidth: '600px',
-    margin: '32px auto',
-    padding: '0 16px'
+    maxWidth: '640px',
+    margin: '0 auto',
+    padding: '24px 16px'
   },
-  heading: {
-    marginBottom: '24px',
-    color: '#1a1a2e'
-  },
-  empty: {
-    color: '#888',
+  hero: {
     textAlign: 'center',
-    marginTop: '40px'
+    marginBottom: '32px',
+    padding: '32px 0 16px'
+  },
+  heroTitle: {
+    fontSize: '32px',
+    fontWeight: '800',
+    color: 'white',
+    marginBottom: '8px'
+  },
+  heroSub: {
+    fontSize: '15px',
+    color: '#6c63ff',
+    fontWeight: '500'
+  },
+  loadingBox: {
+    textAlign: 'center',
+    padding: '60px 0'
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '3px solid rgba(108, 99, 255, 0.2)',
+    borderTop: '3px solid #6c63ff',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    margin: '0 auto 16px'
+  },
+  loadingText: {
+    color: '#6c63ff',
+    fontSize: '14px'
+  },
+  emptyBox: {
+    textAlign: 'center',
+    padding: '60px 0'
+  },
+  emptyIcon: {
+    fontSize: '48px',
+    marginBottom: '16px'
+  },
+  emptyText: {
+    fontSize: '18px',
+    color: 'white',
+    fontWeight: '600'
+  },
+  emptySub: {
+    fontSize: '14px',
+    color: '#6c63ff',
+    marginTop: '8px'
   }
 };
 

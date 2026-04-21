@@ -5,11 +5,29 @@
 }
 
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #f0f0f5;
-  color: #222;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+  min-height: 100vh;
+  color: #e0e0e0;
 }
 
 a {
   text-decoration: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6c63ff;
+  border-radius: 3px;
+}
+
+input, textarea {
+  font-family: 'Segoe UI', sans-serif;
 }

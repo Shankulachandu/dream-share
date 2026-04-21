@@ -14,9 +14,7 @@ function Profile() {
   const myId        = localStorage.getItem('user_id');
   const isMyProfile = myId === userId;
 
-  useEffect(() => {
-    loadProfile();
-  }, [userId]);
+  useEffect(() => { loadProfile(); }, [userId]);
 
   const loadProfile = async () => {
     const [profileRes, insightsRes, dreamsRes] = await Promise.all([
@@ -24,11 +22,9 @@ function Profile() {
       axios.get(`http://127.0.0.1:5000/insights/${userId}`),
       axios.get(`http://127.0.0.1:5000/profile/${userId}/dreams`)
     ]);
-
     setProfile(profileRes.data);
     setInsights(insightsRes.data);
     setDreams(dreamsRes.data);
-
     if (myId && !isMyProfile) {
       const followRes = await axios.get(
         `http://127.0.0.1:5000/is_following?follower_id=${myId}&following_id=${userId}`
@@ -39,74 +35,73 @@ function Profile() {
 
   const handleFollow = async () => {
     if (!myId) { navigate('/login'); return; }
-
     if (isFollowing) {
       await axios.post('http://127.0.0.1:5000/unfollow', {
-        follower_id:  parseInt(myId),
-        following_id: parseInt(userId)
+        follower_id: parseInt(myId), following_id: parseInt(userId)
       });
       setIsFollowing(false);
     } else {
       await axios.post('http://127.0.0.1:5000/follow', {
-        follower_id:  parseInt(myId),
-        following_id: parseInt(userId)
+        follower_id: parseInt(myId), following_id: parseInt(userId)
       });
       setIsFollowing(true);
     }
     loadProfile();
   };
 
-  const handleMessage = () => {
-    navigate(`/messages/${userId}`);
-  };
-
-  if (!profile) return <p style={{ padding: '40px', textAlign: 'center' }}>Loading...</p>;
+  if (!profile) return (
+    <div style={styles.loading}>
+      <p>Loading profile...</p>
+    </div>
+  );
 
   return (
     <div style={styles.container}>
 
       {/* Profile header */}
       <div style={styles.header}>
-        <div style={styles.avatar}>
-          {profile.username[0].toUpperCase()}
+        <div style={styles.avatarWrap}>
+          <div style={styles.avatar}>
+            {profile.username[0].toUpperCase()}
+          </div>
+          <div style={styles.streakBadge}>
+            🔥 {profile.streak}
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0 }}>@{profile.username}</h2>
-          <p style={{ color: '#888', margin: '4px 0' }}>{profile.bio || 'No bio yet'}</p>
 
-          {/* Stats */}
+        <div style={styles.headerInfo}>
+          <h2 style={styles.username}>@{profile.username}</h2>
+          <p style={styles.bio}>{profile.bio || 'No bio yet'}</p>
+
           <div style={styles.statsRow}>
             <div style={styles.stat}>
-              <strong>{profile.post_count}</strong>
-              <span>Dreams</span>
+              <strong style={styles.statNum}>{profile.post_count}</strong>
+              <span style={styles.statLabel}>Dreams</span>
             </div>
+            <div style={styles.statDivider} />
             <div style={styles.stat}>
-              <strong>{profile.followers}</strong>
-              <span>Followers</span>
+              <strong style={styles.statNum}>{profile.followers}</strong>
+              <span style={styles.statLabel}>Followers</span>
             </div>
+            <div style={styles.statDivider} />
             <div style={styles.stat}>
-              <strong>{profile.following}</strong>
-              <span>Following</span>
-            </div>
-            <div style={styles.streak}>
-              🔥 {profile.streak} day streak
+              <strong style={styles.statNum}>{profile.following}</strong>
+              <span style={styles.statLabel}>Following</span>
             </div>
           </div>
 
-          {/* Follow and Message buttons */}
           {!isMyProfile && (
             <div style={styles.btnRow}>
               <button
                 onClick={handleFollow}
-                style={
-                  isFollowing
-                    ? { ...styles.followBtn, background: '#eee', color: '#333' }
-                    : { ...styles.followBtn, background: '#6c63ff', color: 'white' }
-                }
+                style={isFollowing ? styles.unfollowBtn : styles.followBtn}
               >
                 {isFollowing ? 'Unfollow' : '+ Follow'}
               </button>
-              <button onClick={handleMessage} style={styles.msgBtn}>
+              <button
+                onClick={() => navigate(`/messages/${userId}`)}
+                style={styles.msgBtn}
+              >
                 💬 Message
               </button>
             </div>
@@ -116,8 +111,8 @@ function Profile() {
 
       {/* Dream Insights */}
       {insights.length > 0 && (
-        <div style={styles.insights}>
-          <h3 style={{ marginBottom: '16px' }}>📊 Dream Themes</h3>
+        <div style={styles.insightsBox}>
+          <h3 style={styles.sectionTitle}>📊 Dream Themes</h3>
           {insights.map(i => (
             <div key={i.tag} style={styles.insightRow}>
               <span style={styles.tag}>{i.tag}</span>
@@ -133,10 +128,10 @@ function Profile() {
         </div>
       )}
 
-      {/* User's dreams */}
-      <h3 style={{ margin: '24px 0 16px' }}>🌙 Dreams</h3>
+      {/* Dreams */}
+      <h3 style={styles.sectionTitle}>🌙 Dreams</h3>
       {dreams.length === 0 ? (
-        <p style={{ color: '#888' }}>No dreams posted yet.</p>
+        <p style={styles.noDreams}>No dreams posted yet.</p>
       ) : (
         dreams.map(d => (
           <DreamCard key={d.id} dream={d} onLike={loadProfile} />
@@ -149,83 +144,141 @@ function Profile() {
 const styles = {
   container: {
     maxWidth: '600px',
-    margin: '32px auto',
-    padding: '0 16px'
+    margin: '0 auto',
+    padding: '32px 16px'
+  },
+  loading: {
+    textAlign: 'center',
+    padding: '60px',
+    color: '#6b7280'
   },
   header: {
     display: 'flex',
     gap: '20px',
     alignItems: 'flex-start',
-    marginBottom: '24px',
-    background: '#fff',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '20px',
     padding: '24px',
-    borderRadius: '16px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.06)'
+    marginBottom: '24px',
+    backdropFilter: 'blur(10px)'
+  },
+  avatarWrap: {
+    position: 'relative',
+    flexShrink: 0
   },
   avatar: {
-    width: '72px',
-    height: '72px',
+    width: '80px',
+    height: '80px',
     borderRadius: '50%',
-    background: '#6c63ff',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
     color: 'white',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '28px',
-    fontWeight: 'bold',
-    flexShrink: 0
+    fontSize: '32px',
+    fontWeight: '700',
+    border: '3px solid rgba(108, 99, 255, 0.4)'
+  },
+  streakBadge: {
+    position: 'absolute',
+    bottom: '-4px',
+    right: '-4px',
+    background: '#f59e0b',
+    color: 'white',
+    fontSize: '11px',
+    fontWeight: '700',
+    padding: '2px 6px',
+    borderRadius: '10px',
+    border: '2px solid #0f0f1a'
+  },
+  headerInfo: {
+    flex: 1
+  },
+  username: {
+    color: 'white',
+    fontSize: '20px',
+    fontWeight: '700',
+    margin: '0 0 4px'
+  },
+  bio: {
+    color: '#6b7280',
+    fontSize: '13px',
+    margin: '0 0 16px'
   },
   statsRow: {
     display: 'flex',
-    gap: '16px',
-    marginTop: '12px',
     alignItems: 'center',
-    flexWrap: 'wrap'
+    gap: '16px',
+    marginBottom: '16px'
   },
   stat: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    fontSize: '13px',
-    color: '#555'
+    alignItems: 'center'
   },
-  streak: {
-    background: '#fff3e0',
-    color: '#e65100',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '13px',
-    fontWeight: '600'
+  statNum: {
+    color: 'white',
+    fontSize: '18px',
+    fontWeight: '700'
+  },
+  statLabel: {
+    color: '#6b7280',
+    fontSize: '11px',
+    marginTop: '2px'
+  },
+  statDivider: {
+    width: '1px',
+    height: '30px',
+    background: 'rgba(255,255,255,0.1)'
   },
   btnRow: {
     display: 'flex',
-    gap: '10px',
-    marginTop: '14px'
+    gap: '10px'
   },
   followBtn: {
     padding: '8px 20px',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
+    color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '14px'
+  },
+  unfollowBtn: {
+    padding: '8px 20px',
+    background: 'rgba(255,255,255,0.05)',
+    color: '#a0a0b0',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '20px',
     cursor: 'pointer',
     fontWeight: '600',
     fontSize: '14px'
   },
   msgBtn: {
     padding: '8px 20px',
-    background: '#f0f0ff',
-    color: '#6c63ff',
-    border: '1px solid #6c63ff',
-    borderRadius: '8px',
+    background: 'rgba(108, 99, 255, 0.15)',
+    color: '#a78bfa',
+    border: '1px solid rgba(108, 99, 255, 0.3)',
+    borderRadius: '20px',
     cursor: 'pointer',
     fontWeight: '600',
     fontSize: '14px'
   },
-  insights: {
-    background: '#fff',
-    borderRadius: '16px',
+  insightsBox: {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '20px',
     padding: '24px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
-    marginBottom: '24px'
+    marginBottom: '24px',
+    backdropFilter: 'blur(10px)'
+  },
+  sectionTitle: {
+    color: 'white',
+    fontSize: '16px',
+    fontWeight: '700',
+    marginBottom: '16px'
   },
   insightRow: {
     display: 'flex',
@@ -237,24 +290,29 @@ const styles = {
     minWidth: '80px',
     fontSize: '13px',
     fontWeight: '600',
-    color: '#6c63ff'
+    color: '#a78bfa'
   },
   barBg: {
     flex: 1,
-    background: '#e0e0ff',
+    background: 'rgba(108, 99, 255, 0.15)',
     borderRadius: '4px',
     height: '8px'
   },
   bar: {
-    background: '#6c63ff',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
     height: '8px',
     borderRadius: '4px',
     transition: 'width 0.5s'
   },
   count: {
     fontSize: '12px',
-    color: '#888',
+    color: '#6b7280',
     minWidth: '24px'
+  },
+  noDreams: {
+    color: '#6b7280',
+    textAlign: 'center',
+    padding: '40px 0'
   }
 };
 
