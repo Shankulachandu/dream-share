@@ -10,6 +10,7 @@ import Search from './pages/Search';
 import Messages from './pages/Messages';
 import Conversations from './pages/Conversations';
 import Notifications from './pages/Notifications';
+import Explore from './pages/Explore';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/conversations"    element={<Conversations />} />
         <Route path="/messages/:userId" element={<Messages />} />
         <Route path="/notifications"    element={<Notifications />} />
+        <Route path="/explore"          element={<Explore />} />
       </Routes>
     </BrowserRouter>
   );

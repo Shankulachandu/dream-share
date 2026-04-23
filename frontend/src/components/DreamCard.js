@@ -15,7 +15,7 @@ const moodColors = {
   lucid:    '#06b6d4'
 };
 
-function DreamCard({ dream, onLike }) {
+function DreamCard({ dream, onLike, onDelete }) {
   const [showComments, setShowComments]             = useState(false);
   const [comments, setComments]                     = useState([]);
   const [newComment, setNewComment]                 = useState('');
@@ -24,16 +24,30 @@ function DreamCard({ dream, onLike }) {
   const [loadingAI, setLoadingAI]                   = useState(false);
   const [showInterpretation, setShowInterpretation] = useState(false);
   const [liked, setLiked]                           = useState(false);
+  const [showOptions, setShowOptions]               = useState(false);
+  const [confirmDelete, setConfirmDelete]           = useState(false);
+
+  const myId      = localStorage.getItem('user_id');
+  const isMyDream = myId && dream.owner_id && String(dream.owner_id) === String(myId);
 
   const handleLike = async () => {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) { alert('Login to like dreams!'); return; }
+    if (!myId) { alert('Login to like dreams!'); return; }
     await axios.post('http://127.0.0.1:5000/dream/like', {
-      user_id:  parseInt(userId),
+      user_id:  parseInt(myId),
       dream_id: dream.id
     });
     setLiked(!liked);
     if (onLike) onLike();
+  };
+
+  const handleDelete = async () => {
+    await axios.delete(
+      `http://127.0.0.1:5000/dream/${dream.id}?user_id=${myId}`
+    );
+    setConfirmDelete(false);
+    setShowOptions(false);
+    if (onDelete) onDelete();
+    if (onLike)   onLike();
   };
 
   const loadComments = async () => {
@@ -46,11 +60,10 @@ function DreamCard({ dream, onLike }) {
   };
 
   const postComment = async () => {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) { alert('Login to comment!'); return; }
+    if (!myId) { alert('Login to comment!'); return; }
     if (!newComment.trim()) return;
     await axios.post('http://127.0.0.1:5000/dream/comment', {
-      user_id:  parseInt(userId),
+      user_id:  parseInt(myId),
       dream_id: dream.id,
       text:     newComment
     });
@@ -118,7 +131,49 @@ function DreamCard({ dream, onLike }) {
             </div>
           </div>
         </div>
+
+        {/* 3-dot menu — only on own dreams */}
+        {isMyDream && (
+          <div style={styles.optionsWrap}>
+            <button
+              onClick={() => setShowOptions(!showOptions)}
+              style={styles.optionsBtn}
+            >
+              ···
+            </button>
+            {showOptions && (
+              <div style={styles.optionsMenu}>
+                <button
+                  onClick={() => { setConfirmDelete(true); setShowOptions(false); }}
+                  style={styles.deleteOption}
+                >
+                  🗑️ Delete Dream
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div style={styles.confirmBox}>
+          <p style={styles.confirmText}>
+            Are you sure you want to delete this dream?
+          </p>
+          <div style={styles.confirmBtns}>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              style={styles.confirmCancel}
+            >
+              Cancel
+            </button>
+            <button onClick={handleDelete} style={styles.confirmDelete}>
+              Yes, Delete
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Dream content */}
       <p style={styles.content}>{dream.content}</p>
@@ -160,21 +215,20 @@ function DreamCard({ dream, onLike }) {
         }}>
           {liked ? '❤️' : '🤍'} {dream.like_count}
         </button>
-
         <button onClick={loadComments} style={styles.actionBtn}>
           💬 {dream.comment_count}
         </button>
-
         <button onClick={interpretDream} style={styles.interpretBtn}>
-          {loadingAI ? '⏳ Analyzing...' : showInterpretation ? '🤖 Hide' : '🤖 Interpret'}
+          {loadingAI ? '⏳' : showInterpretation ? '🤖 Hide' : '🤖 Interpret'}
         </button>
       </div>
 
       {/* Comments section */}
       {showComments && (
         <div style={styles.commentsBox}>
-          {loadingCom && <p style={styles.loadingText}>Loading comments...</p>}
-
+          {loadingCom && (
+            <p style={styles.loadingText}>Loading comments...</p>
+          )}
           {comments.length === 0 ? (
             <p style={styles.noComments}>No comments yet. Be the first!</p>
           ) : (
@@ -190,7 +244,6 @@ function DreamCard({ dream, onLike }) {
               </div>
             ))
           )}
-
           <div style={styles.commentInputRow}>
             <input
               placeholder="Write a comment..."
@@ -199,7 +252,9 @@ function DreamCard({ dream, onLike }) {
               onKeyDown={e => e.key === 'Enter' && postComment()}
               style={styles.commentInput}
             />
-            <button onClick={postComment} style={styles.sendBtn}>Send</button>
+            <button onClick={postComment} style={styles.sendBtn}>
+              Send
+            </button>
           </div>
         </div>
       )}
@@ -209,12 +264,13 @@ function DreamCard({ dream, onLike }) {
 
 const styles = {
   card: {
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: '16px',
     marginBottom: '20px',
     overflow: 'hidden',
-    backdropFilter: 'blur(10px)'
+    backdropFilter: 'blur(10px)',
+    position: 'relative'
   },
   moodBar: {
     height: '3px',
@@ -222,7 +278,10 @@ const styles = {
     opacity: 0.8
   },
   header: {
-    padding: '16px 16px 8px'
+    padding: '16px 16px 8px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
   },
   userInfo: {
     display: 'flex',
@@ -265,6 +324,82 @@ const styles = {
     fontSize: '11px',
     color: '#6b7280'
   },
+  optionsWrap: {
+    position: 'relative'
+  },
+  optionsBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#6b7280',
+    cursor: 'pointer',
+    fontSize: '20px',
+    padding: '4px 8px',
+    borderRadius: '8px',
+    letterSpacing: '2px',
+    lineHeight: '1'
+  },
+  optionsMenu: {
+    position: 'absolute',
+    top: '32px',
+    right: 0,
+    background: '#1a1a2e',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    zIndex: 50,
+    minWidth: '160px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+  },
+  deleteOption: {
+    display: 'block',
+    width: '100%',
+    padding: '12px 16px',
+    background: 'none',
+    border: 'none',
+    color: '#ef4444',
+    cursor: 'pointer',
+    fontSize: '14px',
+    textAlign: 'left',
+    fontWeight: '500'
+  },
+  confirmBox: {
+    margin: '0 16px 12px',
+    background: 'rgba(239,68,68,0.1)',
+    border: '1px solid rgba(239,68,68,0.3)',
+    borderRadius: '12px',
+    padding: '14px'
+  },
+  confirmText: {
+    color: '#fca5a5',
+    fontSize: '13px',
+    marginBottom: '12px',
+    textAlign: 'center'
+  },
+  confirmBtns: {
+    display: 'flex',
+    gap: '8px'
+  },
+  confirmCancel: {
+    flex: 1,
+    padding: '8px',
+    background: 'rgba(255,255,255,0.05)',
+    color: '#a0a0b0',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '13px'
+  },
+  confirmDelete: {
+    flex: 1,
+    padding: '8px',
+    background: '#ef4444',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '600'
+  },
   content: {
     fontSize: '15px',
     lineHeight: '1.7',
@@ -280,8 +415,8 @@ const styles = {
   },
   aiBox: {
     margin: '0 16px 16px',
-    background: 'rgba(108, 99, 255, 0.1)',
-    border: '1px solid rgba(108, 99, 255, 0.3)',
+    background: 'rgba(108,99,255,0.1)',
+    border: '1px solid rgba(108,99,255,0.3)',
     borderRadius: '12px',
     padding: '14px'
   },
@@ -323,8 +458,8 @@ const styles = {
     fontWeight: '500'
   },
   interpretBtn: {
-    background: 'rgba(108, 99, 255, 0.15)',
-    border: '1px solid rgba(108, 99, 255, 0.3)',
+    background: 'rgba(108,99,255,0.15)',
+    border: '1px solid rgba(108,99,255,0.3)',
     color: '#a78bfa',
     padding: '5px 12px',
     borderRadius: '20px',

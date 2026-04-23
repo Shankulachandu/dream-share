@@ -34,11 +34,9 @@ def edit_profile(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # Update bio
-    bio = request.form.get('bio', user.bio)
+    bio      = request.form.get('bio', user.bio)
     user.bio = bio
 
-    # Update profile picture if provided
     if 'profile_pic' in request.files:
         file = request.files['profile_pic']
         if file and file.filename:
@@ -58,12 +56,14 @@ def edit_profile(user_id):
 @user_routes.route('/profile/<int:user_id>/dreams', methods=['GET'])
 def get_user_dreams(user_id):
     viewer_id = request.args.get('viewer_id')
+
     if viewer_id and int(viewer_id) == user_id:
         dreams = Dream.query.filter_by(user_id=user_id)\
                             .order_by(Dream.created_at.desc()).all()
     else:
         dreams = Dream.query.filter_by(user_id=user_id, is_anonymous=False)\
                             .order_by(Dream.created_at.desc()).all()
+
     result = []
     for d in dreams:
         user = User.query.get(d.user_id)
@@ -75,6 +75,7 @@ def get_user_dreams(user_id):
             "is_anonymous":  d.is_anonymous,
             "username":      "Anonymous Dreamer" if d.is_anonymous else user.username,
             "user_id":       d.user_id,
+            "owner_id":      d.user_id,
             "image_url":     d.image_url,
             "video_url":     d.video_url,
             "like_count":    Like.query.filter_by(dream_id=d.id).count(),

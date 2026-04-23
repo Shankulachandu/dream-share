@@ -5,7 +5,6 @@ import axios from 'axios';
 function Navbar() {
   const [unreadMessages, setUnreadMessages]           = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [menuOpen, setMenuOpen]                       = useState(false);
   const userId   = localStorage.getItem('user_id');
   const navigate = useNavigate();
 
@@ -35,13 +34,15 @@ function Navbar() {
       </Link>
 
       <div style={styles.links}>
-        <Link to="/" style={styles.link}>Feed</Link>
-        <Link to="/search" style={styles.link}>🔍 Search</Link>
+        <Link to="/"       style={styles.link}>Feed</Link>
+        <Link to="/search"  style={styles.link}>🔍 Search</Link>
+        <Link to="/explore" style={styles.link}>🔭 Explore</Link>
 
         {userId ? (
           <>
             <Link to="/create" style={styles.createBtn}>+ Post Dream</Link>
 
+            {/* Messages icon with badge */}
             <div style={styles.iconWrap} onClick={() => navigate('/conversations')}>
               <span style={styles.iconBtn}>💬</span>
               {unreadMessages > 0 && (
@@ -49,6 +50,7 @@ function Navbar() {
               )}
             </div>
 
+            {/* Notifications icon with badge */}
             <div style={styles.iconWrap}>
               <Link to="/notifications" style={styles.iconBtn}>🔔</Link>
               {unreadNotifications > 0 && (
@@ -64,7 +66,7 @@ function Navbar() {
           </>
         ) : (
           <>
-            <Link to="/login" style={styles.link}>Login</Link>
+            <Link to="/login"    style={styles.link}>Login</Link>
             <Link to="/register" style={styles.createBtn}>Join Free</Link>
           </>
         )}
@@ -114,7 +116,6 @@ const styles = {
     fontSize: '14px',
     padding: '6px 12px',
     borderRadius: '8px',
-    transition: 'all 0.2s',
     fontWeight: '500'
   },
   createBtn: {
