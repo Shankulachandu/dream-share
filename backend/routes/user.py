@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from models import db, User, Follower, Dream, Streak, DreamTag, Message, Like
 from sqlalchemy import func, or_
 from datetime import datetime
+from werkzeug.utils import secure_filename
+import os
 
 user_routes = Blueprint('user', __name__)
 
@@ -15,29 +17,53 @@ def get_profile(user_id):
     post_count = Dream.query.filter_by(user_id=user_id).count()
     streak     = Streak.query.filter_by(user_id=user_id).first()
     return jsonify({
-        "id":         user.id,
-        "username":   user.username,
-        "bio":        user.bio,
-        "followers":  followers,
-        "following":  following,
-        "post_count": post_count,
-        "streak":     streak.current_streak if streak else 0
+        "id":          user.id,
+        "username":    user.username,
+        "bio":         user.bio,
+        "profile_pic": user.profile_pic,
+        "followers":   followers,
+        "following":   following,
+        "post_count":  post_count,
+        "streak":      streak.current_streak if streak else 0
+    }), 200
+
+
+@user_routes.route('/profile/<int:user_id>/edit', methods=['POST'])
+def edit_profile(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Update bio
+    bio = request.form.get('bio', user.bio)
+    user.bio = bio
+
+    # Update profile picture if provided
+    if 'profile_pic' in request.files:
+        file = request.files['profile_pic']
+        if file and file.filename:
+            filename    = secure_filename(file.filename)
+            unique_name = f"pic_{user_id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
+            file.save(os.path.join('uploads', unique_name))
+            user.profile_pic = f"/uploads/{unique_name}"
+
+    db.session.commit()
+    return jsonify({
+        "message":     "Profile updated!",
+        "bio":         user.bio,
+        "profile_pic": user.profile_pic
     }), 200
 
 
 @user_routes.route('/profile/<int:user_id>/dreams', methods=['GET'])
 def get_user_dreams(user_id):
     viewer_id = request.args.get('viewer_id')
-
-    # Own profile — show ALL dreams including anonymous
-    # Other people's profile — show only non-anonymous dreams
     if viewer_id and int(viewer_id) == user_id:
         dreams = Dream.query.filter_by(user_id=user_id)\
                             .order_by(Dream.created_at.desc()).all()
     else:
         dreams = Dream.query.filter_by(user_id=user_id, is_anonymous=False)\
                             .order_by(Dream.created_at.desc()).all()
-
     result = []
     for d in dreams:
         user = User.query.get(d.user_id)
@@ -130,19 +156,15 @@ def get_insights(user_id):
 def send_message():
     media_url  = ""
     media_type = ""
-
     if request.files and 'media' in request.files:
         file = request.files['media']
         if file:
-            from werkzeug.utils import secure_filename
-            import os
             filename    = secure_filename(file.filename)
             unique_name = f"msg_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
             file.save(os.path.join('uploads', unique_name))
             media_url  = f"/uploads/{unique_name}"
             ext        = filename.rsplit('.', 1)[-1].lower()
             media_type = 'video' if ext in {'mp4', 'mov', 'avi'} else 'image'
-
         sender_id   = int(request.form.get('sender_id'))
         receiver_id = int(request.form.get('receiver_id'))
         text        = request.form.get('text', '')
@@ -151,7 +173,6 @@ def send_message():
         sender_id   = data['sender_id']
         receiver_id = data['receiver_id']
         text        = data.get('text', '')
-
     msg = Message(
         sender_id=sender_id,
         receiver_id=receiver_id,
@@ -237,11 +258,9 @@ def get_notifications(user_id):
     user = User.query.get(user_id)
     user.last_seen_notif = datetime.utcnow()
     db.session.commit()
-
     user_dreams = Dream.query.filter_by(user_id=user_id).all()
     dream_ids   = [d.id for d in user_dreams]
     notifications = []
-
     if dream_ids:
         recent_likes = Like.query.filter(
             Like.dream_id.in_(dream_ids),
@@ -257,7 +276,6 @@ def get_notifications(user_id):
                     "preview": dream.content[:50],
                     "time":    like.created_at.isoformat()
                 })
-
     recent_follows = Follower.query.filter_by(
         following_id=user_id
     ).order_by(Follower.created_at.desc()).limit(20).all()
@@ -270,7 +288,6 @@ def get_notifications(user_id):
                 "preview": "",
                 "time":    follow.created_at.isoformat()
             })
-
     notifications.sort(key=lambda x: x['time'], reverse=True)
     return jsonify(notifications), 200
 
@@ -280,12 +297,10 @@ def get_unread_notifications(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({"count": 0}), 200
-
     last_seen   = user.last_seen_notif
     user_dreams = Dream.query.filter_by(user_id=user_id).all()
     dream_ids   = [d.id for d in user_dreams]
     count       = 0
-
     if dream_ids:
         query = Like.query.filter(
             Like.dream_id.in_(dream_ids),
@@ -294,10 +309,8 @@ def get_unread_notifications(user_id):
         if last_seen:
             query = query.filter(Like.created_at > last_seen)
         count += query.count()
-
     follow_query = Follower.query.filter_by(following_id=user_id)
     if last_seen:
         follow_query = follow_query.filter(Follower.created_at > last_seen)
     count += follow_query.count()
-
     return jsonify({"count": count}), 200

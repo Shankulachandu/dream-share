@@ -9,6 +9,11 @@ function Profile() {
   const [insights, setInsights]       = useState([]);
   const [dreams, setDreams]           = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [showEdit, setShowEdit]       = useState(false);
+  const [newBio, setNewBio]           = useState('');
+  const [newPic, setNewPic]           = useState(null);
+  const [picPreview, setPicPreview]   = useState(null);
+  const [saving, setSaving]           = useState(false);
   const navigate                      = useNavigate();
 
   const myId        = localStorage.getItem('user_id');
@@ -20,12 +25,12 @@ function Profile() {
     const [profileRes, insightsRes, dreamsRes] = await Promise.all([
       axios.get(`http://127.0.0.1:5000/profile/${userId}`),
       axios.get(`http://127.0.0.1:5000/insights/${userId}`),
-      // Pass viewer_id so backend knows who is viewing
       axios.get(`http://127.0.0.1:5000/profile/${userId}/dreams?viewer_id=${myId}`)
     ]);
     setProfile(profileRes.data);
     setInsights(insightsRes.data);
     setDreams(dreamsRes.data);
+    setNewBio(profileRes.data.bio || '');
 
     if (myId && !isMyProfile) {
       const followRes = await axios.get(
@@ -53,28 +58,127 @@ function Profile() {
     loadProfile();
   };
 
+  const handlePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewPic(file);
+      setPicPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    const formData = new FormData();
+    formData.append('bio', newBio);
+    if (newPic) formData.append('profile_pic', newPic);
+
+    const res = await axios.post(
+      `http://127.0.0.1:5000/profile/${myId}/edit`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+
+    setShowEdit(false);
+    setNewPic(null);
+    setPicPreview(null);
+    setSaving(false);
+    loadProfile();
+  };
+
   if (!profile) return (
-    <div style={styles.loading}>
-      <p>Loading profile...</p>
-    </div>
+    <div style={styles.loading}>Loading profile...</div>
   );
 
   return (
     <div style={styles.container}>
 
+      {/* Edit Profile Modal */}
+      {showEdit && (
+        <div style={styles.modal}>
+          <div style={styles.modalCard}>
+            <h3 style={styles.modalTitle}>✏️ Edit Profile</h3>
+
+            {/* Profile pic upload */}
+            <div style={styles.picUploadWrap}>
+              <div style={styles.picPreviewCircle}>
+                {picPreview ? (
+                  <img src={picPreview} alt="preview" style={styles.picPreviewImg} />
+                ) : profile.profile_pic ? (
+                  <img
+                    src={`http://127.0.0.1:5000${profile.profile_pic}`}
+                    alt="profile"
+                    style={styles.picPreviewImg}
+                  />
+                ) : (
+                  <span style={styles.picPreviewLetter}>
+                    {profile.username[0].toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <label style={styles.changePicBtn}>
+                📸 Change Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePicChange}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
+
+            {/* Bio input */}
+            <p style={styles.modalLabel}>Bio</p>
+            <textarea
+              placeholder="Write something about yourself..."
+              value={newBio}
+              onChange={e => setNewBio(e.target.value)}
+              style={styles.bioInput}
+              maxLength={300}
+            />
+            <p style={styles.charCount}>{newBio.length}/300</p>
+
+            {/* Buttons */}
+            <div style={styles.modalBtns}>
+              <button
+                onClick={() => { setShowEdit(false); setNewPic(null); setPicPreview(null); }}
+                style={styles.cancelBtn}
+              >
+                Cancel
+              </button>
+              <button onClick={handleSaveProfile} style={styles.saveBtn} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile header */}
       <div style={styles.header}>
         <div style={styles.avatarWrap}>
-          <div style={styles.avatar}>
-            {profile.username[0].toUpperCase()}
-          </div>
-          <div style={styles.streakBadge}>
-            🔥 {profile.streak}
-          </div>
+          {profile.profile_pic ? (
+            <img
+              src={`http://127.0.0.1:5000${profile.profile_pic}`}
+              alt="profile"
+              style={styles.avatarImg}
+            />
+          ) : (
+            <div style={styles.avatar}>
+              {profile.username[0].toUpperCase()}
+            </div>
+          )}
+          <div style={styles.streakBadge}>🔥 {profile.streak}</div>
         </div>
 
         <div style={styles.headerInfo}>
-          <h2 style={styles.username}>@{profile.username}</h2>
+          <div style={styles.nameRow}>
+            <h2 style={styles.username}>@{profile.username}</h2>
+            {isMyProfile && (
+              <button onClick={() => setShowEdit(true)} style={styles.editBtn}>
+                ✏️ Edit
+              </button>
+            )}
+          </div>
           <p style={styles.bio}>{profile.bio || 'No bio yet'}</p>
 
           {/* Stats */}
@@ -95,7 +199,7 @@ function Profile() {
             </div>
           </div>
 
-          {/* Follow and Message buttons — only on other people's profiles */}
+          {/* Follow and Message buttons */}
           {!isMyProfile && (
             <div style={styles.btnRow}>
               <button
@@ -113,7 +217,6 @@ function Profile() {
             </div>
           )}
 
-          {/* Show anonymous note on own profile */}
           {isMyProfile && (
             <p style={styles.anonNote}>
               🕶️ Anonymous dreams are only visible to you
@@ -148,7 +251,6 @@ function Profile() {
       ) : (
         dreams.map(d => (
           <div key={d.id} style={{ position: 'relative' }}>
-            {/* Show anonymous badge on own profile */}
             {isMyProfile && d.is_anonymous && (
               <div style={styles.anonBadge}>🕶️ Anonymous</div>
             )}
@@ -170,6 +272,122 @@ const styles = {
     textAlign: 'center',
     padding: '60px',
     color: '#6b7280'
+  },
+  modal: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.85)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modalCard: {
+    background: '#1a1a2e',
+    border: '1px solid rgba(108,99,255,0.3)',
+    borderRadius: '24px',
+    padding: '32px',
+    width: '90%',
+    maxWidth: '420px'
+  },
+  modalTitle: {
+    color: 'white',
+    fontSize: '20px',
+    fontWeight: '700',
+    marginBottom: '24px',
+    textAlign: 'center'
+  },
+  picUploadWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: '20px',
+    gap: '12px'
+  },
+  picPreviewCircle: {
+    width: '90px',
+    height: '90px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '3px solid rgba(108,99,255,0.4)'
+  },
+  picPreviewImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  },
+  picPreviewLetter: {
+    color: 'white',
+    fontSize: '32px',
+    fontWeight: '700'
+  },
+  changePicBtn: {
+    padding: '8px 18px',
+    background: 'rgba(108,99,255,0.15)',
+    color: '#a78bfa',
+    border: '1px solid rgba(108,99,255,0.3)',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '600'
+  },
+  modalLabel: {
+    color: '#a0a0b0',
+    fontSize: '12px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBottom: '8px'
+  },
+  bioInput: {
+    width: '100%',
+    height: '100px',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.05)',
+    color: 'white',
+    fontSize: '14px',
+    resize: 'none',
+    outline: 'none',
+    lineHeight: '1.5'
+  },
+  charCount: {
+    textAlign: 'right',
+    fontSize: '11px',
+    color: '#6b7280',
+    marginTop: '4px',
+    marginBottom: '20px'
+  },
+  modalBtns: {
+    display: 'flex',
+    gap: '10px'
+  },
+  cancelBtn: {
+    flex: 1,
+    padding: '12px',
+    background: 'rgba(255,255,255,0.05)',
+    color: '#a0a0b0',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600'
+  },
+  saveBtn: {
+    flex: 1,
+    padding: '12px',
+    background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600'
   },
   header: {
     display: 'flex',
@@ -199,6 +417,13 @@ const styles = {
     fontWeight: '700',
     border: '3px solid rgba(108, 99, 255, 0.4)'
   },
+  avatarImg: {
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    objectFit: 'cover',
+    border: '3px solid rgba(108, 99, 255, 0.4)'
+  },
   streakBadge: {
     position: 'absolute',
     bottom: '-4px',
@@ -214,11 +439,27 @@ const styles = {
   headerInfo: {
     flex: 1
   },
+  nameRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '4px'
+  },
   username: {
     color: 'white',
     fontSize: '20px',
     fontWeight: '700',
-    margin: '0 0 4px'
+    margin: 0
+  },
+  editBtn: {
+    background: 'rgba(108,99,255,0.15)',
+    color: '#a78bfa',
+    border: '1px solid rgba(108,99,255,0.3)',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: '600'
   },
   bio: {
     color: '#6b7280',
