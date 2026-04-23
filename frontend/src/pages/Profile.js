@@ -20,11 +20,13 @@ function Profile() {
     const [profileRes, insightsRes, dreamsRes] = await Promise.all([
       axios.get(`http://127.0.0.1:5000/profile/${userId}`),
       axios.get(`http://127.0.0.1:5000/insights/${userId}`),
-      axios.get(`http://127.0.0.1:5000/profile/${userId}/dreams`)
+      // Pass viewer_id so backend knows who is viewing
+      axios.get(`http://127.0.0.1:5000/profile/${userId}/dreams?viewer_id=${myId}`)
     ]);
     setProfile(profileRes.data);
     setInsights(insightsRes.data);
     setDreams(dreamsRes.data);
+
     if (myId && !isMyProfile) {
       const followRes = await axios.get(
         `http://127.0.0.1:5000/is_following?follower_id=${myId}&following_id=${userId}`
@@ -37,12 +39,14 @@ function Profile() {
     if (!myId) { navigate('/login'); return; }
     if (isFollowing) {
       await axios.post('http://127.0.0.1:5000/unfollow', {
-        follower_id: parseInt(myId), following_id: parseInt(userId)
+        follower_id:  parseInt(myId),
+        following_id: parseInt(userId)
       });
       setIsFollowing(false);
     } else {
       await axios.post('http://127.0.0.1:5000/follow', {
-        follower_id: parseInt(myId), following_id: parseInt(userId)
+        follower_id:  parseInt(myId),
+        following_id: parseInt(userId)
       });
       setIsFollowing(true);
     }
@@ -73,6 +77,7 @@ function Profile() {
           <h2 style={styles.username}>@{profile.username}</h2>
           <p style={styles.bio}>{profile.bio || 'No bio yet'}</p>
 
+          {/* Stats */}
           <div style={styles.statsRow}>
             <div style={styles.stat}>
               <strong style={styles.statNum}>{profile.post_count}</strong>
@@ -90,6 +95,7 @@ function Profile() {
             </div>
           </div>
 
+          {/* Follow and Message buttons — only on other people's profiles */}
           {!isMyProfile && (
             <div style={styles.btnRow}>
               <button
@@ -105,6 +111,13 @@ function Profile() {
                 💬 Message
               </button>
             </div>
+          )}
+
+          {/* Show anonymous note on own profile */}
+          {isMyProfile && (
+            <p style={styles.anonNote}>
+              🕶️ Anonymous dreams are only visible to you
+            </p>
           )}
         </div>
       </div>
@@ -134,7 +147,13 @@ function Profile() {
         <p style={styles.noDreams}>No dreams posted yet.</p>
       ) : (
         dreams.map(d => (
-          <DreamCard key={d.id} dream={d} onLike={loadProfile} />
+          <div key={d.id} style={{ position: 'relative' }}>
+            {/* Show anonymous badge on own profile */}
+            {isMyProfile && d.is_anonymous && (
+              <div style={styles.anonBadge}>🕶️ Anonymous</div>
+            )}
+            <DreamCard dream={d} onLike={loadProfile} />
+          </div>
         ))
       )}
     </div>
@@ -266,6 +285,15 @@ const styles = {
     fontWeight: '600',
     fontSize: '14px'
   },
+  anonNote: {
+    fontSize: '12px',
+    color: '#a78bfa',
+    marginTop: '10px',
+    background: 'rgba(108, 99, 255, 0.1)',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    display: 'inline-block'
+  },
   insightsBox: {
     background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.08)',
@@ -313,6 +341,19 @@ const styles = {
     color: '#6b7280',
     textAlign: 'center',
     padding: '40px 0'
+  },
+  anonBadge: {
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    background: 'rgba(108, 99, 255, 0.3)',
+    color: '#a78bfa',
+    fontSize: '11px',
+    fontWeight: '600',
+    padding: '3px 10px',
+    borderRadius: '20px',
+    zIndex: 10,
+    border: '1px solid rgba(108, 99, 255, 0.4)'
   }
 };
 

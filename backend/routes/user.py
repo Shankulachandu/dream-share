@@ -27,8 +27,17 @@ def get_profile(user_id):
 
 @user_routes.route('/profile/<int:user_id>/dreams', methods=['GET'])
 def get_user_dreams(user_id):
-    dreams = Dream.query.filter_by(user_id=user_id)\
-                        .order_by(Dream.created_at.desc()).all()
+    viewer_id = request.args.get('viewer_id')
+
+    # Own profile — show ALL dreams including anonymous
+    # Other people's profile — show only non-anonymous dreams
+    if viewer_id and int(viewer_id) == user_id:
+        dreams = Dream.query.filter_by(user_id=user_id)\
+                            .order_by(Dream.created_at.desc()).all()
+    else:
+        dreams = Dream.query.filter_by(user_id=user_id, is_anonymous=False)\
+                            .order_by(Dream.created_at.desc()).all()
+
     result = []
     for d in dreams:
         user = User.query.get(d.user_id)
@@ -39,8 +48,9 @@ def get_user_dreams(user_id):
             "created_at":    d.created_at.isoformat(),
             "is_anonymous":  d.is_anonymous,
             "username":      "Anonymous Dreamer" if d.is_anonymous else user.username,
-            "user_id":       None if d.is_anonymous else d.user_id,
+            "user_id":       d.user_id,
             "image_url":     d.image_url,
+            "video_url":     d.video_url,
             "like_count":    Like.query.filter_by(dream_id=d.id).count(),
             "comment_count": Like.query.filter_by(dream_id=d.id).count()
         })
@@ -121,18 +131,16 @@ def send_message():
     media_url  = ""
     media_type = ""
 
-    # Handle media file if sent
     if request.files and 'media' in request.files:
         file = request.files['media']
         if file:
             from werkzeug.utils import secure_filename
             import os
-            from datetime import datetime
             filename    = secure_filename(file.filename)
             unique_name = f"msg_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
             file.save(os.path.join('uploads', unique_name))
             media_url  = f"/uploads/{unique_name}"
-            ext = filename.rsplit('.', 1)[-1].lower()
+            ext        = filename.rsplit('.', 1)[-1].lower()
             media_type = 'video' if ext in {'mp4', 'mov', 'avi'} else 'image'
 
         sender_id   = int(request.form.get('sender_id'))
