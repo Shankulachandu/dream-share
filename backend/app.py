@@ -5,10 +5,18 @@ from config import Config
 from models import db
 
 app = Flask(__name__)
-app.config.from_object(Config)
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
 
-CORS(app)
+# Fix PostgreSQL URL if needed
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///dreamshare.db')
+if db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI']        = db_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY']                     = os.environ.get('SECRET_KEY', 'dreamshare-secret-2024')
+app.config['MAX_CONTENT_LENGTH']             = 100 * 1024 * 1024  # 100MB
+
+CORS(app, origins="*")
 db.init_app(app)
 
 os.makedirs('uploads', exist_ok=True)
@@ -29,9 +37,14 @@ app.register_blueprint(story_routes)
 def uploaded_file(filename):
     return send_from_directory('uploads', filename)
 
+@app.route('/')
+def home():
+    return {"message": "Dream Share API is running! 🌙"}, 200
+
 with app.app_context():
     db.create_all()
     print("Database tables created!")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
