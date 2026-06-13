@@ -1,12 +1,12 @@
 import os
 from flask import Flask, send_from_directory
 from flask_cors import CORS
+from flask_migrate import Migrate
 from config import Config
 from models import db
 
 app = Flask(__name__)
 
-# Fix PostgreSQL URL if needed
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///dreamshare.db')
 if db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql://', 1)
@@ -14,10 +14,11 @@ if db_url.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI']        = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY']                     = os.environ.get('SECRET_KEY', 'dreamshare-secret-2024')
-app.config['MAX_CONTENT_LENGTH']             = 100 * 1024 * 1024  # 100MB
+app.config['MAX_CONTENT_LENGTH']             = 100 * 1024 * 1024
 
 CORS(app, origins="*")
 db.init_app(app)
+migrate = Migrate(app, db)
 
 os.makedirs('uploads', exist_ok=True)
 
@@ -47,4 +48,4 @@ with app.app_context():
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
