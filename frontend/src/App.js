@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -12,21 +12,52 @@ import Conversations from './pages/Conversations';
 import Notifications from './pages/Notifications';
 import Explore from './pages/Explore';
 
+// Protected route — redirects to login if not logged in
+function ProtectedRoute({ children }) {
+  const userId = localStorage.getItem('user_id');
+  if (!userId) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <Navbar />
       <Routes>
-        <Route path="/"                 element={<Home />} />
-        <Route path="/login"            element={<Login />} />
-        <Route path="/register"         element={<Register />} />
-        <Route path="/create"           element={<CreateDream />} />
-        <Route path="/profile/:userId"  element={<Profile />} />
-        <Route path="/search"           element={<Search />} />
-        <Route path="/conversations"    element={<Conversations />} />
-        <Route path="/messages/:userId" element={<Messages />} />
-        <Route path="/notifications"    element={<Notifications />} />
-        <Route path="/explore"          element={<Explore />} />
+        {/* Public routes — no login needed */}
+        <Route path="/login"    element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected routes — login required */}
+        <Route path="/" element={
+          <ProtectedRoute><Home /></ProtectedRoute>
+        } />
+        <Route path="/create" element={
+          <ProtectedRoute><CreateDream /></ProtectedRoute>
+        } />
+        <Route path="/profile/:userId" element={
+          <ProtectedRoute><Profile /></ProtectedRoute>
+        } />
+        <Route path="/search" element={
+          <ProtectedRoute><Search /></ProtectedRoute>
+        } />
+        <Route path="/conversations" element={
+          <ProtectedRoute><Conversations /></ProtectedRoute>
+        } />
+        <Route path="/messages/:userId" element={
+          <ProtectedRoute><Messages /></ProtectedRoute>
+        } />
+        <Route path="/notifications" element={
+          <ProtectedRoute><Notifications /></ProtectedRoute>
+        } />
+        <Route path="/explore" element={
+          <ProtectedRoute><Explore /></ProtectedRoute>
+        } />
+
+        {/* Any unknown URL redirects to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
