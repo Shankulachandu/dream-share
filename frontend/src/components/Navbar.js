@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_URL from '../config';
 
 function Navbar() {
   const [unreadMessages, setUnreadMessages]           = useState(0);
@@ -18,8 +19,8 @@ function Navbar() {
   const fetchCounts = async () => {
     try {
       const [msgRes, notifRes] = await Promise.all([
-        axios.get(`http://127.0.0.1:5000/messages/unread/${userId}`),
-        axios.get(`http://127.0.0.1:5000/notifications/unread/${userId}`)
+        axios.get(`${API_URL}/messages/unread/${userId}`),
+        axios.get(`${API_URL}/notifications/unread/${userId}`)
       ]);
       setUnreadMessages(msgRes.data.count);
       setUnreadNotifications(notifRes.data.count);
@@ -42,7 +43,6 @@ function Navbar() {
           <>
             <Link to="/create" style={styles.createBtn}>+ Post Dream</Link>
 
-            {/* Messages icon with badge */}
             <div style={styles.iconWrap} onClick={() => navigate('/conversations')}>
               <span style={styles.iconBtn}>💬</span>
               {unreadMessages > 0 && (
@@ -50,7 +50,6 @@ function Navbar() {
               )}
             </div>
 
-            {/* Notifications icon with badge */}
             <div style={styles.iconWrap}>
               <Link to="/notifications" style={styles.iconBtn}>🔔</Link>
               {unreadNotifications > 0 && (
@@ -94,9 +93,7 @@ const styles = {
     gap: '8px',
     textDecoration: 'none'
   },
-  logoMoon: {
-    fontSize: '24px'
-  },
+  logoMoon: { fontSize: '24px' },
   logoText: {
     color: 'white',
     fontSize: '20px',
