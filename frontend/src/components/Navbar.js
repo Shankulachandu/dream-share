@@ -60,7 +60,10 @@ function Navbar() {
               </div>
 
               <Link to={`/profile/${userId}`} className="nav-link">My Profile</Link>
-              <button className="nav-logout-btn" onClick={() => { localStorage.clear(); window.location.href = '/login'; }}>
+              <button className="nav-logout-btn" onClick={() => {
+                localStorage.clear();
+                window.location.href = '/login';
+              }}>
                 Logout
               </button>
             </>
@@ -73,21 +76,32 @@ function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation — 7 items */}
       {userId && (
         <div className="mobile-nav">
+
+          {/* Feed */}
           <Link to="/" className={`mobile-nav-item ${isActive('/')}`}>
             <span className="mobile-nav-icon">🏠</span>
             <span className="mobile-nav-label">Feed</span>
           </Link>
 
+          {/* Search */}
+          <Link to="/search" className={`mobile-nav-item ${isActive('/search')}`}>
+            <span className="mobile-nav-icon">🔍</span>
+            <span className="mobile-nav-label">Search</span>
+          </Link>
+
+          {/* Post Dream — center button */}
+          <Link to="/create" className="mobile-post-btn">+</Link>
+
+          {/* Explore */}
           <Link to="/explore" className={`mobile-nav-item ${isActive('/explore')}`}>
             <span className="mobile-nav-icon">🔭</span>
             <span className="mobile-nav-label">Explore</span>
           </Link>
 
-          <Link to="/create" className="mobile-post-btn">+</Link>
-
+          {/* Messages */}
           <div
             className={`mobile-nav-item ${isActive('/conversations')}`}
             onClick={() => navigate('/conversations')}
@@ -97,10 +111,25 @@ function Navbar() {
             <span className="mobile-nav-label">Messages</span>
           </div>
 
-          <Link to={`/profile/${userId}`} className={`mobile-nav-item ${isActive(`/profile/${userId}`)}`}>
+          {/* Notifications */}
+          <div
+            className={`mobile-nav-item ${isActive('/notifications')}`}
+            onClick={() => navigate('/notifications')}
+          >
+            <span className="mobile-nav-icon">🔔</span>
+            {unreadNotifications > 0 && <span className="mobile-badge">{unreadNotifications}</span>}
+            <span className="mobile-nav-label">Alerts</span>
+          </div>
+
+          {/* Profile */}
+          <Link
+            to={`/profile/${userId}`}
+            className={`mobile-nav-item ${isActive(`/profile/${userId}`)}`}
+          >
             <span className="mobile-nav-icon">👤</span>
             <span className="mobile-nav-label">Profile</span>
           </Link>
+
         </div>
       )}
     </>
