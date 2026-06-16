@@ -4,6 +4,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DreamCard from '../components/DreamCard';
 import API_URL from '../config';
 
+const getMediaSrc = (url) => {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `${API_URL}${url}`;
+};
+
 function Profile() {
   const { userId }                    = useParams();
   const [profile, setProfile]         = useState(null);
@@ -33,7 +38,9 @@ function Profile() {
     setDreams(dreamsRes.data);
     setNewBio(profileRes.data.bio || '');
     if (myId && !isMyProfile) {
-      const followRes = await axios.get(`${API_URL}/is_following?follower_id=${myId}&following_id=${userId}`);
+      const followRes = await axios.get(
+        `${API_URL}/is_following?follower_id=${myId}&following_id=${userId}`
+      );
       setIsFollowing(followRes.data.is_following);
     }
   };
@@ -83,7 +90,7 @@ function Profile() {
                 {picPreview ? (
                   <img src={picPreview} alt="preview" style={styles.picPreviewImg} />
                 ) : profile.profile_pic ? (
-                  <img src={`${API_URL}${profile.profile_pic}`} alt="profile" style={styles.picPreviewImg} />
+                  <img src={getMediaSrc(profile.profile_pic)} alt="profile" style={styles.picPreviewImg} />
                 ) : (
                   <span style={styles.picPreviewLetter}>{profile.username[0].toUpperCase()}</span>
                 )}
@@ -98,7 +105,9 @@ function Profile() {
             <p style={styles.charCount}>{newBio.length}/300</p>
             <div style={styles.modalBtns}>
               <button onClick={() => { setShowEdit(false); setNewPic(null); setPicPreview(null); }} style={styles.cancelBtn}>Cancel</button>
-              <button onClick={handleSaveProfile} style={styles.saveBtn} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+              <button onClick={handleSaveProfile} style={styles.saveBtn} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>
@@ -107,7 +116,7 @@ function Profile() {
       <div style={styles.header}>
         <div style={styles.avatarWrap}>
           {profile.profile_pic ? (
-            <img src={`${API_URL}${profile.profile_pic}`} alt="profile" style={styles.avatarImg} />
+            <img src={getMediaSrc(profile.profile_pic)} alt="profile" style={styles.avatarImg} />
           ) : (
             <div style={styles.avatar}>{profile.username[0].toUpperCase()}</div>
           )}
@@ -122,11 +131,20 @@ function Profile() {
           </div>
           <p style={styles.bio}>{profile.bio || 'No bio yet'}</p>
           <div style={styles.statsRow}>
-            <div style={styles.stat}><strong style={styles.statNum}>{profile.post_count}</strong><span style={styles.statLabel}>Dreams</span></div>
+            <div style={styles.stat}>
+              <strong style={styles.statNum}>{profile.post_count}</strong>
+              <span style={styles.statLabel}>Dreams</span>
+            </div>
             <div style={styles.statDivider} />
-            <div style={styles.stat}><strong style={styles.statNum}>{profile.followers}</strong><span style={styles.statLabel}>Followers</span></div>
+            <div style={styles.stat}>
+              <strong style={styles.statNum}>{profile.followers}</strong>
+              <span style={styles.statLabel}>Followers</span>
+            </div>
             <div style={styles.statDivider} />
-            <div style={styles.stat}><strong style={styles.statNum}>{profile.following}</strong><span style={styles.statLabel}>Following</span></div>
+            <div style={styles.stat}>
+              <strong style={styles.statNum}>{profile.following}</strong>
+              <span style={styles.statLabel}>Following</span>
+            </div>
           </div>
           {!isMyProfile && (
             <div style={styles.btnRow}>
@@ -136,7 +154,9 @@ function Profile() {
               <button onClick={() => navigate(`/messages/${userId}`)} style={styles.msgBtn}>💬 Message</button>
             </div>
           )}
-          {isMyProfile && <p style={styles.anonNote}>🕶️ Anonymous dreams are only visible to you</p>}
+          {isMyProfile && (
+            <p style={styles.anonNote}>🕶️ Anonymous dreams are only visible to you</p>
+          )}
         </div>
       </div>
 
@@ -146,7 +166,9 @@ function Profile() {
           {insights.map(i => (
             <div key={i.tag} style={styles.insightRow}>
               <span style={styles.tag}>{i.tag}</span>
-              <div style={styles.barBg}><div style={{ ...styles.bar, width: `${Math.min(i.count * 20, 100)}%` }} /></div>
+              <div style={styles.barBg}>
+                <div style={{ ...styles.bar, width: `${Math.min(i.count * 20, 100)}%` }} />
+              </div>
               <span style={styles.count}>{i.count}x</span>
             </div>
           ))}
@@ -159,7 +181,9 @@ function Profile() {
       ) : (
         dreams.map(d => (
           <div key={d.id} style={{ position: 'relative' }}>
-            {isMyProfile && d.is_anonymous && <div style={styles.anonBadge}>🕶️ Anonymous</div>}
+            {isMyProfile && d.is_anonymous && (
+              <div style={styles.anonBadge}>🕶️ Anonymous</div>
+            )}
             <DreamCard dream={d} onLike={loadProfile} />
           </div>
         ))

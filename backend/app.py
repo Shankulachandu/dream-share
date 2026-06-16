@@ -1,8 +1,8 @@
 import os
+import cloudinary
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
-from config import Config
 from models import db
 
 app = Flask(__name__)
@@ -15,6 +15,13 @@ app.config['SQLALCHEMY_DATABASE_URI']        = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY']                     = os.environ.get('SECRET_KEY', 'dreamshare-secret-2024')
 app.config['MAX_CONTENT_LENGTH']             = 100 * 1024 * 1024
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key    = os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+)
 
 CORS(app, origins="*")
 db.init_app(app)

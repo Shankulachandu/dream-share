@@ -1,26 +1,10 @@
 from flask import Blueprint, request, jsonify
 from models import db, Dream, Like, Comment, DreamTag, Streak, User
 from datetime import date, timedelta, datetime
-import os
-from werkzeug.utils import secure_filename
+from cloudinary_helper import upload_file
 from sqlalchemy import func
 
 dream_routes = Blueprint('dream', __name__)
-
-UPLOAD_FOLDER      = 'uploads'
-ALLOWED_IMAGE      = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-ALLOWED_VIDEO      = {'mp4', 'mov', 'avi', 'webm'}
-ALLOWED_EXTENSIONS = ALLOWED_IMAGE | ALLOWED_VIDEO
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def get_media_type(filename):
-    ext = filename.rsplit('.', 1)[1].lower()
-    if ext in ALLOWED_VIDEO:
-        return 'video'
-    return 'image'
 
 
 # ── CREATE DREAM ────────────────────────────────────────────
@@ -29,25 +13,24 @@ def create_dream():
     image_url = ""
     video_url = ""
 
+    # Handle image upload to Cloudinary
     if 'image' in request.files:
         file = request.files['image']
-        if file and allowed_file(file.filename):
-            filename    = secure_filename(file.filename)
-            unique_name = f"{date.today()}_{filename}"
-            file.save(os.path.join(UPLOAD_FOLDER, unique_name))
-            media_type = get_media_type(filename)
-            if media_type == 'video':
-                video_url = f"/uploads/{unique_name}"
-            else:
-                image_url = f"/uploads/{unique_name}"
+        if file and file.filename:
+            url, media_type = upload_file(file, folder="dream-share/dreams")
+            if url:
+                if media_type == 'video':
+                    video_url = url
+                else:
+                    image_url = url
 
+    # Handle video upload to Cloudinary
     if 'video' in request.files:
         file = request.files['video']
-        if file and allowed_file(file.filename):
-            filename    = secure_filename(file.filename)
-            unique_name = f"video_{date.today()}_{filename}"
-            file.save(os.path.join(UPLOAD_FOLDER, unique_name))
-            video_url = f"/uploads/{unique_name}"
+        if file and file.filename:
+            url, media_type = upload_file(file, folder="dream-share/dreams")
+            if url:
+                video_url = url
 
     user_id      = int(request.form.get('user_id'))
     content      = request.form.get('content')
@@ -153,10 +136,7 @@ def get_categories():
      .order_by(func.count(DreamTag.tag).desc())\
      .limit(20).all()
 
-    return jsonify([{
-        "tag":   r.tag,
-        "count": r.count
-    } for r in results]), 200
+    return jsonify([{"tag": r.tag, "count": r.count} for r in results]), 200
 
 
 # ── SEARCH DREAMS ───────────────────────────────────────────

@@ -2,19 +2,24 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import API_URL from '../config';
 
+const getMediaSrc = (url) => {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `${API_URL}${url}`;
+};
+
 function Stories() {
-  const [userStories, setUserStories]     = useState([]);
-  const [selectedUser, setSelectedUser]   = useState(null);
-  const [storyIndex, setStoryIndex]       = useState(0);
-  const [showViewer, setShowViewer]       = useState(false);
-  const [showUpload, setShowUpload]       = useState(false);
-  const [caption, setCaption]             = useState('');
-  const [mediaFile, setMediaFile]         = useState(null);
-  const [mediaPreview, setMediaPreview]   = useState(null);
-  const [mediaType, setMediaType]         = useState('image');
-  const [progress, setProgress]           = useState(0);
-  const myId       = localStorage.getItem('user_id');
-  const timerRef   = useRef(null);
+  const [userStories, setUserStories]   = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [storyIndex, setStoryIndex]     = useState(0);
+  const [showViewer, setShowViewer]     = useState(false);
+  const [showUpload, setShowUpload]     = useState(false);
+  const [caption, setCaption]           = useState('');
+  const [mediaFile, setMediaFile]       = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaType, setMediaType]       = useState('image');
+  const [progress, setProgress]         = useState(0);
+  const myId     = localStorage.getItem('user_id');
+  const timerRef = useRef(null);
 
   useEffect(() => { loadStories(); }, []);
 
@@ -24,14 +29,13 @@ function Stories() {
         `${API_URL}/stories${myId ? `?viewer_id=${myId}` : ''}`
       );
       setUserStories(res.data);
-    } catch (err) {}
+    } catch (err) { console.error('Could not load stories'); }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const isVideo = file.type.startsWith('video/');
-    setMediaType(isVideo ? 'video' : 'image');
+    setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
     setMediaFile(file);
     setMediaPreview(URL.createObjectURL(file));
     setShowUpload(true);
@@ -73,7 +77,7 @@ function Stories() {
     clearInterval(timerRef.current);
     setProgress(0);
     const duration = story.media_type === 'video' ? 15000 : 5000;
-    let elapsed = 0;
+    let elapsed    = 0;
     timerRef.current = setInterval(() => {
       elapsed += 100;
       setProgress((elapsed / duration) * 100);
@@ -134,15 +138,8 @@ function Stories() {
 
         {userStories.map(us => (
           <div key={us.user_id} style={styles.storyItem} onClick={() => openStory(us)}>
-            <div style={{
-              ...styles.storyRing,
-              background: allViewed(us)
-                ? 'rgba(255,255,255,0.2)'
-                : 'linear-gradient(135deg, #6c63ff, #f59e0b, #ec4899)'
-            }}>
-              <div style={styles.storyAvatarInner}>
-                {us.username[0].toUpperCase()}
-              </div>
+            <div style={{ ...styles.storyRing, background: allViewed(us) ? 'rgba(255,255,255,0.2)' : 'linear-gradient(135deg, #6c63ff, #f59e0b, #ec4899)' }}>
+              <div style={styles.storyAvatarInner}>{us.username[0].toUpperCase()}</div>
             </div>
             <span style={styles.storyUsername}>
               {us.username.length > 8 ? us.username.slice(0, 8) + '...' : us.username}
@@ -157,19 +154,13 @@ function Stories() {
             <h3 style={styles.modalTitle}>📸 Add Story</h3>
             {mediaPreview && (
               <div style={styles.uploadPreview}>
-                {mediaType === 'video' ? (
-                  <video src={mediaPreview} style={styles.previewMedia} controls />
-                ) : (
-                  <img src={mediaPreview} alt="preview" style={styles.previewMedia} />
-                )}
+                {mediaType === 'video'
+                  ? <video src={mediaPreview} style={styles.previewMedia} controls />
+                  : <img src={mediaPreview} alt="preview" style={styles.previewMedia} />
+                }
               </div>
             )}
-            <input
-              placeholder="Add a caption..."
-              value={caption}
-              onChange={e => setCaption(e.target.value)}
-              style={styles.captionInput}
-            />
+            <input placeholder="Add a caption..." value={caption} onChange={e => setCaption(e.target.value)} style={styles.captionInput} />
             <div style={styles.modalBtns}>
               <button onClick={() => { setShowUpload(false); setMediaPreview(null); }} style={styles.cancelBtn}>Cancel</button>
               <button onClick={uploadStory} style={styles.uploadBtn}>Share Story</button>
@@ -183,10 +174,7 @@ function Stories() {
           <div style={styles.progressBars}>
             {selectedUser.stories.map((s, i) => (
               <div key={s.id} style={styles.progressBar}>
-                <div style={{
-                  ...styles.progressFill,
-                  width: i < storyIndex ? '100%' : i === storyIndex ? `${progress}%` : '0%'
-                }} />
+                <div style={{ ...styles.progressFill, width: i < storyIndex ? '100%' : i === storyIndex ? `${progress}%` : '0%' }} />
               </div>
             ))}
           </div>
@@ -204,9 +192,9 @@ function Stories() {
 
           <div style={styles.viewerMedia} onClick={nextStory}>
             {currentStory.media_type === 'video' ? (
-              <video src={`${API_URL}${currentStory.media_url}`} style={styles.storyMedia} autoPlay muted playsInline />
+              <video src={getMediaSrc(currentStory.media_url)} style={styles.storyMedia} autoPlay muted playsInline />
             ) : (
-              <img src={`${API_URL}${currentStory.media_url}`} alt="story" style={styles.storyMedia} />
+              <img src={getMediaSrc(currentStory.media_url)} alt="story" style={styles.storyMedia} />
             )}
           </div>
 
@@ -216,7 +204,7 @@ function Stories() {
             </div>
           )}
 
-          <div style={styles.tapLeft}  onClick={prevStory} />
+          <div style={styles.tapLeft} onClick={prevStory} />
           <div style={styles.tapRight} onClick={nextStory} />
         </div>
       )}
@@ -251,7 +239,7 @@ const styles = {
   viewerAvatar: { width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #6c63ff, #a78bfa)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '14px' },
   viewerUsername: { color: 'white', fontWeight: '600', fontSize: '14px', margin: 0 },
   viewerTime: { color: 'rgba(255,255,255,0.6)', fontSize: '11px', margin: 0 },
-  closeBtn: { background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px' },
+  closeBtn: { background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   viewerMedia: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   storyMedia: { maxWidth: '100%', maxHeight: '100vh', objectFit: 'contain' },
   caption: { position: 'absolute', bottom: '40px', left: 0, right: 0, padding: '0 24px', textAlign: 'center', zIndex: 10 },

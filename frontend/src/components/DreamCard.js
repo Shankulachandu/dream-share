@@ -12,6 +12,11 @@ const moodColors = {
   neutral: '#6b7280', romantic: '#ec4899', lucid: '#06b6d4'
 };
 
+const getMediaSrc = (url) => {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `${API_URL}${url}`;
+};
+
 function DreamCard({ dream, onLike, onDelete }) {
   const [showComments, setShowComments]             = useState(false);
   const [comments, setComments]                     = useState([]);
@@ -148,10 +153,18 @@ function DreamCard({ dream, onLike, onDelete }) {
       <p style={styles.content}>{dream.content}</p>
 
       {dream.image_url && (
-        <img src={`${API_URL}${dream.image_url}`} alt="dream" style={styles.dreamMedia} />
+        <img
+          src={getMediaSrc(dream.image_url)}
+          alt="dream"
+          style={styles.dreamMedia}
+        />
       )}
       {dream.video_url && (
-        <video src={`${API_URL}${dream.video_url}`} controls style={styles.dreamMedia} />
+        <video
+          src={getMediaSrc(dream.video_url)}
+          controls
+          style={styles.dreamMedia}
+        />
       )}
 
       {showInterpretation && interpretation && (
@@ -209,7 +222,12 @@ function DreamCard({ dream, onLike, onDelete }) {
 }
 
 const styles = {
-  card: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', marginBottom: '20px', overflow: 'hidden', backdropFilter: 'blur(10px)', position: 'relative' },
+  card: {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '16px', marginBottom: '20px',
+    overflow: 'hidden', backdropFilter: 'blur(10px)', position: 'relative'
+  },
   moodBar: { height: '3px', width: '100%', opacity: 0.8 },
   header: { padding: '16px 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
   userInfo: { display: 'flex', alignItems: 'center', gap: '12px' },
