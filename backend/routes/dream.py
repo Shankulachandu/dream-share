@@ -13,7 +13,6 @@ def create_dream():
     image_url = ""
     video_url = ""
 
-    # Handle image upload to Cloudinary
     if 'image' in request.files:
         file = request.files['image']
         if file and file.filename:
@@ -24,7 +23,6 @@ def create_dream():
                 else:
                     image_url = url
 
-    # Handle video upload to Cloudinary
     if 'video' in request.files:
         file = request.files['video']
         if file and file.filename:
@@ -63,13 +61,10 @@ def create_dream():
 def delete_dream(dream_id):
     user_id = request.args.get('user_id')
     dream   = Dream.query.get(dream_id)
-
     if not dream:
         return jsonify({"error": "Dream not found"}), 404
-
     if str(dream.user_id) != str(user_id):
         return jsonify({"error": "Not authorized"}), 403
-
     Like.query.filter_by(dream_id=dream_id).delete()
     Comment.query.filter_by(dream_id=dream_id).delete()
     DreamTag.query.filter_by(dream_id=dream_id).delete()
@@ -97,7 +92,6 @@ def get_trending():
      .group_by(Dream.id)\
      .order_by(func.count(Like.id).desc())\
      .limit(20).all()
-
     result = []
     for dream, like_count in popular:
         d = format_dream(dream)
@@ -112,16 +106,13 @@ def get_explore():
     mood     = request.args.get('mood', '')
     category = request.args.get('category', '')
     query    = Dream.query
-
     if mood:
         query = query.filter_by(mood=mood)
-
     if category:
         tagged_ids = db.session.query(DreamTag.dream_id)\
                                .filter(DreamTag.tag.ilike(f'%{category}%'))\
                                .subquery()
         query = query.filter(Dream.id.in_(tagged_ids))
-
     dreams = query.order_by(Dream.created_at.desc()).limit(30).all()
     return jsonify([format_dream(d) for d in dreams]), 200
 
@@ -135,7 +126,6 @@ def get_categories():
     ).group_by(DreamTag.tag)\
      .order_by(func.count(DreamTag.tag).desc())\
      .limit(20).all()
-
     return jsonify([{"tag": r.tag, "count": r.count} for r in results]), 200
 
 
@@ -145,12 +135,10 @@ def search_dreams():
     q = request.args.get('q', '')
     if not q:
         return jsonify([]), 200
-
     dreams = Dream.query.filter(
         Dream.content.ilike(f'%{q}%'),
         Dream.is_anonymous == False
     ).order_by(Dream.created_at.desc()).limit(20).all()
-
     return jsonify([format_dream(d) for d in dreams]), 200
 
 
@@ -198,6 +186,117 @@ def get_comments(dream_id):
             "created_at": c.created_at.isoformat()
         })
     return jsonify(result), 200
+
+
+# ── 🌀 DREAM CONNECTIONS ────────────────────────────────────
+@dream_routes.route('/dream/connections/<int:user_id>', methods=['GET'])
+def get_dream_connections(user_id):
+    """
+    Find users who dreamed about the same things as this user
+    in the last 24 hours — Dream Twins!
+    """
+    since = datetime.utcnow() - timedelta(hours=24)
+
+    # Get this user's dream tags from last 24 hours
+    my_dreams = Dream.query.filter(
+        Dream.user_id == user_id,
+        Dream.created_at >= since
+    ).all()
+
+    if not my_dreams:
+        return jsonify({
+            "connections": [],
+            "message":     "Post a dream to find your Dream Connections! 🌀"
+        }), 200
+
+    my_dream_ids = [d.id for d in my_dreams]
+    my_tags = db.session.query(DreamTag.tag).filter(
+        DreamTag.dream_id.in_(my_dream_ids)
+    ).all()
+    my_tag_set = set([t.tag.lower() for t in my_tags])
+
+    if not my_tag_set:
+        return jsonify({
+            "connections": [],
+            "message":     "Add tags to your dreams to find connections! 🌀"
+        }), 200
+
+    # Find other users' dreams with matching tags in last 24 hours
+    other_dreams = Dream.query.filter(
+        Dream.user_id != user_id,
+        Dream.is_anonymous == False,
+        Dream.created_at >= since
+    ).all()
+
+    connections = {}
+    for dream in other_dreams:
+        their_tags = db.session.query(DreamTag.tag).filter(
+            DreamTag.dream_id == dream.id
+        ).all()
+        their_tag_set = set([t.tag.lower() for t in their_tags])
+
+        # Find shared tags
+        shared = my_tag_set & their_tag_set
+        if shared:
+            uid = dream.user_id
+            if uid not in connections:
+                other_user = User.query.get(uid)
+                if other_user:
+                    connections[uid] = {
+                        "user_id":     uid,
+                        "username":    other_user.username,
+                        "profile_pic": other_user.profile_pic or "",
+                        "shared_tags": list(shared),
+                        "dream":       {
+                            "id":      dream.id,
+                            "content": dream.content[:100],
+                            "mood":    dream.mood
+                        }
+                    }
+            else:
+                # Add more shared tags if found in another dream
+                for tag in shared:
+                    if tag not in connections[uid]["shared_tags"]:
+                        connections[uid]["shared_tags"].append(tag)
+
+    result = list(connections.values())
+
+    # Sort by number of shared tags (most connected first)
+    result.sort(key=lambda x: len(x["shared_tags"]), reverse=True)
+
+    return jsonify({
+        "connections":  result,
+        "my_tags":      list(my_tag_set),
+        "total":        len(result),
+        "message":      f"Found {len(result)} Dream Connection{'s' if len(result) != 1 else ''}! 🌀" if result else "No connections yet. More people need to dream! 🌙"
+    }), 200
+
+
+# ── 🌀 GLOBAL DREAM THEMES TODAY ───────────────────────────
+@dream_routes.route('/dream/themes/today', methods=['GET'])
+def get_todays_themes():
+    """
+    Get the most common dream themes from the last 24 hours
+    across all users — shows what the world is dreaming about
+    """
+    since = datetime.utcnow() - timedelta(hours=24)
+
+    results = db.session.query(
+        DreamTag.tag,
+        func.count(DreamTag.tag).label('count')
+    ).join(Dream, DreamTag.dream_id == Dream.id)\
+     .filter(
+         Dream.created_at >= since,
+         Dream.is_anonymous == False
+     )\
+     .group_by(DreamTag.tag)\
+     .order_by(func.count(DreamTag.tag).desc())\
+     .limit(10).all()
+
+    return jsonify([{
+        "tag":   r.tag,
+        "count": r.count
+    } for r in results]), 200
 
 
 # ── HELPER ──────────────────────────────────────────────────

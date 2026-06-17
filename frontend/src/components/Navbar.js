@@ -41,9 +41,10 @@ function Navbar() {
         </Link>
 
         <div className="nav-links">
-          <Link to="/"        className="nav-link">Feed</Link>
-          <Link to="/search"  className="nav-link">🔍 Search</Link>
-          <Link to="/explore" className="nav-link">🔭 Explore</Link>
+          <Link to="/"            className="nav-link">Feed</Link>
+          <Link to="/search"      className="nav-link">🔍 Search</Link>
+          <Link to="/explore"     className="nav-link">🔭 Explore</Link>
+          <Link to="/connections" className="nav-link">🌀 Connections</Link>
 
           {userId ? (
             <>
@@ -60,6 +61,7 @@ function Navbar() {
               </div>
 
               <Link to={`/profile/${userId}`} className="nav-link">My Profile</Link>
+              <Link to="/settings" className="nav-link">⚙️</Link>
               <button className="nav-logout-btn" onClick={() => {
                 localStorage.clear();
                 window.location.href = '/login';
@@ -76,32 +78,26 @@ function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation — 7 items */}
+      {/* Mobile Bottom Navigation */}
       {userId && (
         <div className="mobile-nav">
-
-          {/* Feed */}
           <Link to="/" className={`mobile-nav-item ${isActive('/')}`}>
             <span className="mobile-nav-icon">🏠</span>
             <span className="mobile-nav-label">Feed</span>
           </Link>
 
-          {/* Search */}
-          <Link to="/search" className={`mobile-nav-item ${isActive('/search')}`}>
-            <span className="mobile-nav-icon">🔍</span>
-            <span className="mobile-nav-label">Search</span>
+          <Link to="/connections" className={`mobile-nav-item ${isActive('/connections')}`}>
+            <span className="mobile-nav-icon">🌀</span>
+            <span className="mobile-nav-label">Connect</span>
           </Link>
 
-          {/* Post Dream — center button */}
           <Link to="/create" className="mobile-post-btn">+</Link>
 
-          {/* Explore */}
           <Link to="/explore" className={`mobile-nav-item ${isActive('/explore')}`}>
             <span className="mobile-nav-icon">🔭</span>
             <span className="mobile-nav-label">Explore</span>
           </Link>
 
-          {/* Messages */}
           <div
             className={`mobile-nav-item ${isActive('/conversations')}`}
             onClick={() => navigate('/conversations')}
@@ -111,25 +107,10 @@ function Navbar() {
             <span className="mobile-nav-label">Messages</span>
           </div>
 
-          {/* Notifications */}
-          <div
-            className={`mobile-nav-item ${isActive('/notifications')}`}
-            onClick={() => navigate('/notifications')}
-          >
-            <span className="mobile-nav-icon">🔔</span>
-            {unreadNotifications > 0 && <span className="mobile-badge">{unreadNotifications}</span>}
-            <span className="mobile-nav-label">Alerts</span>
-          </div>
-
-          {/* Profile */}
-          <Link
-            to={`/profile/${userId}`}
-            className={`mobile-nav-item ${isActive(`/profile/${userId}`)}`}
-          >
-            <span className="mobile-nav-icon">👤</span>
-            <span className="mobile-nav-label">Profile</span>
+          <Link to="/settings" className={`mobile-nav-item ${isActive('/settings')}`}>
+            <span className="mobile-nav-icon">⚙️</span>
+            <span className="mobile-nav-label">Settings</span>
           </Link>
-
         </div>
       )}
     </>
