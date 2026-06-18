@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models import db, User, Follower, Dream, Streak, DreamTag, Message, Like
 from sqlalchemy import func, or_
-from datetime import datetime
+from datetime import datetime, timedelta
 from cloudinary_helper import upload_file
 
 user_routes = Blueprint('user', __name__)
@@ -33,17 +33,14 @@ def edit_profile(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
-
     bio      = request.form.get('bio', user.bio)
     user.bio = bio
-
     if 'profile_pic' in request.files:
         file = request.files['profile_pic']
         if file and file.filename:
             url, _ = upload_file(file, folder="dream-share/profiles")
             if url:
                 user.profile_pic = url
-
     db.session.commit()
     return jsonify({
         "message":     "Profile updated!",
@@ -55,14 +52,12 @@ def edit_profile(user_id):
 @user_routes.route('/profile/<int:user_id>/dreams', methods=['GET'])
 def get_user_dreams(user_id):
     viewer_id = request.args.get('viewer_id')
-
     if viewer_id and int(viewer_id) == user_id:
         dreams = Dream.query.filter_by(user_id=user_id)\
                             .order_by(Dream.created_at.desc()).all()
     else:
         dreams = Dream.query.filter_by(user_id=user_id, is_anonymous=False)\
                             .order_by(Dream.created_at.desc()).all()
-
     result = []
     for d in dreams:
         user = User.query.get(d.user_id)
@@ -156,7 +151,6 @@ def get_insights(user_id):
 def send_message():
     media_url  = ""
     media_type = ""
-
     if request.files and 'media' in request.files:
         file = request.files['media']
         if file and file.filename:
@@ -164,7 +158,6 @@ def send_message():
             if url:
                 media_url  = url
                 media_type = mtype or 'image'
-
         sender_id   = int(request.form.get('sender_id'))
         receiver_id = int(request.form.get('receiver_id'))
         text        = request.form.get('text', '')
@@ -173,7 +166,6 @@ def send_message():
         sender_id   = data['sender_id']
         receiver_id = data['receiver_id']
         text        = data.get('text', '')
-
     msg = Message(
         sender_id=sender_id,
         receiver_id=receiver_id,
@@ -259,9 +251,12 @@ def get_notifications(user_id):
     user = User.query.get(user_id)
     user.last_seen_notif = datetime.utcnow()
     db.session.commit()
+
     user_dreams = Dream.query.filter_by(user_id=user_id).all()
     dream_ids   = [d.id for d in user_dreams]
     notifications = []
+
+    # ── Likes ────────────────────────────────────────────────
     if dream_ids:
         recent_likes = Like.query.filter(
             Like.dream_id.in_(dream_ids),
@@ -275,8 +270,11 @@ def get_notifications(user_id):
                     "type":    "like",
                     "message": f"@{liker.username} liked your dream",
                     "preview": dream.content[:50],
-                    "time":    like.created_at.isoformat()
+                    "time":    like.created_at.isoformat(),
+                    "link":    None
                 })
+
+    # ── Follows ──────────────────────────────────────────────
     recent_follows = Follower.query.filter_by(
         following_id=user_id
     ).order_by(Follower.created_at.desc()).limit(20).all()
@@ -287,8 +285,63 @@ def get_notifications(user_id):
                 "type":    "follow",
                 "message": f"@{follower.username} started following you",
                 "preview": "",
-                "time":    follow.created_at.isoformat()
+                "time":    follow.created_at.isoformat(),
+                "link":    f"/profile/{follower.id}"
             })
+
+    # ── 🌀 Dream Connections ─────────────────────────────────
+    since = datetime.utcnow() - timedelta(hours=24)
+
+    my_recent_dreams = Dream.query.filter(
+        Dream.user_id == user_id,
+        Dream.created_at >= since
+    ).all()
+
+    if my_recent_dreams:
+        my_dream_ids = [d.id for d in my_recent_dreams]
+        my_tags = db.session.query(DreamTag.tag).filter(
+            DreamTag.dream_id.in_(my_dream_ids)
+        ).all()
+        my_tag_set = set([t.tag.lower() for t in my_tags])
+
+        if my_tag_set:
+            other_dreams = Dream.query.filter(
+                Dream.user_id != user_id,
+                Dream.is_anonymous == False,
+                Dream.created_at >= since
+            ).all()
+
+            connected_users = {}
+            for dream in other_dreams:
+                their_tags = db.session.query(DreamTag.tag).filter(
+                    DreamTag.dream_id == dream.id
+                ).all()
+                their_tag_set = set([t.tag.lower() for t in their_tags])
+                shared = my_tag_set & their_tag_set
+                if shared:
+                    uid = dream.user_id
+                    if uid not in connected_users:
+                        connected_users[uid] = {
+                            "user":        User.query.get(uid),
+                            "shared_tags": list(shared)
+                        }
+                    else:
+                        for tag in shared:
+                            if tag not in connected_users[uid]["shared_tags"]:
+                                connected_users[uid]["shared_tags"].append(tag)
+
+            for uid, data in connected_users.items():
+                other_user = data["user"]
+                shared     = data["shared_tags"]
+                if other_user:
+                    notifications.append({
+                        "type":    "connection",
+                        "message": f"🌀 Dream Connection! You and @{other_user.username} both dreamed about {', '.join(shared[:2])} last night!",
+                        "preview": "You are Dream Twins! Tap to see their profile.",
+                        "time":    datetime.utcnow().isoformat(),
+                        "link":    f"/profile/{uid}"
+                    })
+
     notifications.sort(key=lambda x: x['time'], reverse=True)
     return jsonify(notifications), 200
 
