@@ -290,7 +290,7 @@ def get_notifications(user_id):
             })
 
     # ── 🌀 Dream Connections ─────────────────────────────────
-    since = datetime.utcnow() - timedelta(hours=24)
+    since = datetime.utcnow() - timedelta(days=7)
 
     my_recent_dreams = Dream.query.filter(
         Dream.user_id == user_id,

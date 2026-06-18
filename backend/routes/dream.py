@@ -35,7 +35,9 @@ def create_dream():
     mood         = request.form.get('mood', 'neutral')
     is_anonymous = request.form.get('is_anonymous') == 'true'
     tags_raw     = request.form.get('tags', '')
-    tags         = [t.strip() for t in tags_raw.split(',') if t.strip()]
+
+    # Save all tags in lowercase to ensure matching works
+    tags = [t.strip().lower() for t in tags_raw.split(',') if t.strip()]
 
     dream = Dream(
         user_id=user_id,
@@ -191,13 +193,8 @@ def get_comments(dream_id):
 # ── 🌀 DREAM CONNECTIONS ────────────────────────────────────
 @dream_routes.route('/dream/connections/<int:user_id>', methods=['GET'])
 def get_dream_connections(user_id):
-    """
-    Find users who dreamed about the same things as this user
-    in the last 24 hours — Dream Twins!
-    """
     since = datetime.utcnow() - timedelta(hours=24)
 
-    # Get this user's dream tags from last 24 hours
     my_dreams = Dream.query.filter(
         Dream.user_id == user_id,
         Dream.created_at >= since
@@ -221,7 +218,6 @@ def get_dream_connections(user_id):
             "message":     "Add tags to your dreams to find connections! 🌀"
         }), 200
 
-    # Find other users' dreams with matching tags in last 24 hours
     other_dreams = Dream.query.filter(
         Dream.user_id != user_id,
         Dream.is_anonymous == False,
@@ -234,8 +230,6 @@ def get_dream_connections(user_id):
             DreamTag.dream_id == dream.id
         ).all()
         their_tag_set = set([t.tag.lower() for t in their_tags])
-
-        # Find shared tags
         shared = my_tag_set & their_tag_set
         if shared:
             uid = dream.user_id
@@ -247,40 +241,32 @@ def get_dream_connections(user_id):
                         "username":    other_user.username,
                         "profile_pic": other_user.profile_pic or "",
                         "shared_tags": list(shared),
-                        "dream":       {
+                        "dream": {
                             "id":      dream.id,
                             "content": dream.content[:100],
                             "mood":    dream.mood
                         }
                     }
             else:
-                # Add more shared tags if found in another dream
                 for tag in shared:
                     if tag not in connections[uid]["shared_tags"]:
                         connections[uid]["shared_tags"].append(tag)
 
     result = list(connections.values())
-
-    # Sort by number of shared tags (most connected first)
     result.sort(key=lambda x: len(x["shared_tags"]), reverse=True)
 
     return jsonify({
-        "connections":  result,
-        "my_tags":      list(my_tag_set),
-        "total":        len(result),
-        "message":      f"Found {len(result)} Dream Connection{'s' if len(result) != 1 else ''}! 🌀" if result else "No connections yet. More people need to dream! 🌙"
+        "connections": result,
+        "my_tags":     list(my_tag_set),
+        "total":       len(result),
+        "message":     f"Found {len(result)} Dream Connection{'s' if len(result) != 1 else ''}! 🌀" if result else "No connections yet. More people need to dream! 🌙"
     }), 200
 
 
-# ── 🌀 GLOBAL DREAM THEMES TODAY ───────────────────────────
+# ── 🌍 GLOBAL DREAM THEMES TODAY ───────────────────────────
 @dream_routes.route('/dream/themes/today', methods=['GET'])
 def get_todays_themes():
-    """
-    Get the most common dream themes from the last 24 hours
-    across all users — shows what the world is dreaming about
-    """
     since = datetime.utcnow() - timedelta(hours=24)
-
     results = db.session.query(
         DreamTag.tag,
         func.count(DreamTag.tag).label('count')
@@ -292,11 +278,7 @@ def get_todays_themes():
      .group_by(DreamTag.tag)\
      .order_by(func.count(DreamTag.tag).desc())\
      .limit(10).all()
-
-    return jsonify([{
-        "tag":   r.tag,
-        "count": r.count
-    } for r in results]), 200
+    return jsonify([{"tag": r.tag, "count": r.count} for r in results]), 200
 
 
 # ── HELPER ──────────────────────────────────────────────────
