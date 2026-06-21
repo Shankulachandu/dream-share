@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, User, Follower, Dream, Streak, DreamTag, Message, Like
+from models import db, User, Follower, Dream, Streak, DreamTag, Message, Like, Comment, Story, StoryView
 from sqlalchemy import func, or_
 from datetime import datetime, timedelta
 from cloudinary_helper import upload_file
@@ -47,6 +47,66 @@ def edit_profile(user_id):
         "bio":         user.bio,
         "profile_pic": user.profile_pic
     }), 200
+
+
+@user_routes.route('/profile/<int:user_id>/delete', methods=['DELETE'])
+def delete_account(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    try:
+        # Delete all user's dreams and related data
+        dreams = Dream.query.filter_by(user_id=user_id).all()
+        for dream in dreams:
+            Like.query.filter_by(dream_id=dream.id).delete()
+            Comment.query.filter_by(dream_id=dream.id).delete()
+            DreamTag.query.filter_by(dream_id=dream.id).delete()
+            db.session.delete(dream)
+
+        # Delete comments on other people's dreams
+        Comment.query.filter_by(user_id=user_id).delete()
+
+        # Delete likes on other people's dreams
+        Like.query.filter_by(user_id=user_id).delete()
+
+        # Delete messages
+        Message.query.filter(
+            or_(
+                Message.sender_id == user_id,
+                Message.receiver_id == user_id
+            )
+        ).delete()
+
+        # Delete stories
+        stories = Story.query.filter_by(user_id=user_id).all()
+        for story in stories:
+            StoryView.query.filter_by(story_id=story.id).delete()
+            db.session.delete(story)
+
+        # Delete story views by this user
+        StoryView.query.filter_by(viewer_id=user_id).delete()
+
+        # Delete followers/following
+        Follower.query.filter(
+            or_(
+                Follower.follower_id == user_id,
+                Follower.following_id == user_id
+            )
+        ).delete()
+
+        # Delete streak
+        Streak.query.filter_by(user_id=user_id).delete()
+
+        # Finally delete the user
+        db.session.delete(user)
+        db.session.commit()
+
+        return jsonify({"message": "Account deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 @user_routes.route('/profile/<int:user_id>/dreams', methods=['GET'])
@@ -251,12 +311,10 @@ def get_notifications(user_id):
     user = User.query.get(user_id)
     user.last_seen_notif = datetime.utcnow()
     db.session.commit()
-
     user_dreams = Dream.query.filter_by(user_id=user_id).all()
     dream_ids   = [d.id for d in user_dreams]
     notifications = []
 
-    # ── Likes ────────────────────────────────────────────────
     if dream_ids:
         recent_likes = Like.query.filter(
             Like.dream_id.in_(dream_ids),
@@ -274,7 +332,6 @@ def get_notifications(user_id):
                     "link":    None
                 })
 
-    # ── Follows ──────────────────────────────────────────────
     recent_follows = Follower.query.filter_by(
         following_id=user_id
     ).order_by(Follower.created_at.desc()).limit(20).all()
@@ -289,9 +346,7 @@ def get_notifications(user_id):
                 "link":    f"/profile/{follower.id}"
             })
 
-    # ── 🌀 Dream Connections ─────────────────────────────────
     since = datetime.utcnow() - timedelta(days=7)
-
     my_recent_dreams = Dream.query.filter(
         Dream.user_id == user_id,
         Dream.created_at >= since
