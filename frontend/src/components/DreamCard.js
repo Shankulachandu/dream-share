@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import API_URL from '../config';
 import { timeAgo } from '../utils/timeAgo';
@@ -34,11 +34,26 @@ function DreamCard({ dream, onLike, onDelete }) {
   const [showShare, setShowShare]                   = useState(false);
   const [copied, setCopied]                         = useState(false);
 
+  const optionsRef = useRef(null);
+
   const myId      = localStorage.getItem('user_id');
   const isMyDream = myId && dream.owner_id && String(dream.owner_id) === String(myId);
 
   const dreamUrl  = `${window.location.origin}/dream/${dream.id}`;
   const shareText = `🌙 Check out this dream on Dream Share!\n\n"${dream.content.slice(0, 100)}..."\n\n`;
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (optionsRef.current && !optionsRef.current.contains(e.target)) {
+        setShowOptions(false);
+      }
+    };
+    if (showOptions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOptions]);
 
   const handleLike = async () => {
     if (!myId) { alert('Login to like dreams!'); return; }
@@ -171,19 +186,21 @@ function DreamCard({ dream, onLike, onDelete }) {
         </div>
 
         {/* Options menu */}
-        <div style={styles.optionsWrap}>
-          <button onClick={() => setShowOptions(!showOptions)} style={styles.optionsBtn}>···</button>
+        <div style={styles.optionsWrap} ref={optionsRef}>
+          <button
+            onClick={() => setShowOptions(!showOptions)}
+            style={styles.optionsBtn}
+          >
+            ···
+          </button>
           {showOptions && (
             <div style={styles.optionsMenu}>
-              {/* Share Dream — available to everyone */}
               <button
                 onClick={() => { handleNativeShare(); setShowOptions(false); }}
                 style={styles.menuOption}
               >
                 🔗 Share Dream
               </button>
-
-              {/* Delete — only for own dreams */}
               {isMyDream && (
                 <>
                   <div style={styles.menuDivider} />
@@ -211,21 +228,19 @@ function DreamCard({ dream, onLike, onDelete }) {
         </div>
       )}
 
-      {/* Share Modal — shows on desktop since no native share */}
+      {/* Share Modal */}
       {showShare && (
-        <div style={styles.shareModal}>
-          <div style={styles.shareCard}>
+        <div style={styles.shareModal} onClick={() => setShowShare(false)}>
+          <div style={styles.shareCard} onClick={e => e.stopPropagation()}>
             <div style={styles.shareHeader}>
               <p style={styles.shareTitle}>🔗 Share this Dream</p>
               <button onClick={() => setShowShare(false)} style={styles.shareClose}>✕</button>
             </div>
-
             <div style={styles.sharePreview}>
               <p style={styles.sharePreviewText}>
                 "{dream.content.slice(0, 80)}{dream.content.length > 80 ? '...' : ''}"
               </p>
             </div>
-
             <div style={styles.shareButtons}>
               <button onClick={handleShareWhatsApp} style={styles.shareBtn}>
                 <span style={styles.shareBtnIcon}>💬</span>
@@ -248,7 +263,6 @@ function DreamCard({ dream, onLike, onDelete }) {
                 <span style={styles.shareBtnLabel}>{copied ? 'Copied!' : 'Copy Link'}</span>
               </button>
             </div>
-
             <div style={styles.linkBox}>
               <p style={styles.linkText}>{dreamUrl}</p>
             </div>
@@ -384,11 +398,7 @@ const styles = {
     background: 'none', border: 'none', color: 'white',
     cursor: 'pointer', fontSize: '14px', textAlign: 'left', fontWeight: '500'
   },
-  menuDivider: {
-    height: '1px',
-    background: 'rgba(255,255,255,0.08)',
-    margin: '4px 0'
-  },
+  menuDivider: { height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' },
   confirmBox: {
     margin: '0 16px 12px',
     background: 'rgba(239,68,68,0.1)',
@@ -408,28 +418,19 @@ const styles = {
     fontSize: '13px', fontWeight: '600'
   },
   shareModal: {
-    position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
     background: 'rgba(0,0,0,0.85)',
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     zIndex: 1000
   },
   shareCard: {
-    background: '#1a1a2e',
-    border: '1px solid rgba(108,99,255,0.3)',
-    borderRadius: '24px 24px 0 0',
-    padding: '24px',
-    width: '100%',
-    maxWidth: '500px',
-    paddingBottom: '40px'
+    background: '#1a1a2e', border: '1px solid rgba(108,99,255,0.3)',
+    borderRadius: '24px 24px 0 0', padding: '24px',
+    width: '100%', maxWidth: '500px', paddingBottom: '40px'
   },
   shareHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px'
+    display: 'flex', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: '16px'
   },
   shareTitle: { color: 'white', fontSize: '18px', fontWeight: '700', margin: 0 },
   shareClose: {
@@ -437,19 +438,11 @@ const styles = {
     width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px'
   },
   sharePreview: {
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: '12px', padding: '12px', marginBottom: '20px'
   },
-  sharePreviewText: {
-    color: '#d0d0d0', fontSize: '13px', lineHeight: '1.5', margin: 0, fontStyle: 'italic'
-  },
-  shareButtons: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '12px',
-    marginBottom: '16px'
-  },
+  sharePreviewText: { color: '#d0d0d0', fontSize: '13px', lineHeight: '1.5', margin: 0, fontStyle: 'italic' },
+  shareButtons: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' },
   shareBtn: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
     padding: '14px 8px', background: 'rgba(255,255,255,0.05)',
@@ -458,29 +451,22 @@ const styles = {
   shareBtnIcon: { fontSize: '24px' },
   shareBtnLabel: { fontSize: '11px', color: '#a0a0b0', fontWeight: '500' },
   linkBox: {
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: '10px', padding: '10px 14px'
   },
   linkText: { color: '#6b7280', fontSize: '12px', margin: 0, wordBreak: 'break-all' },
   content: { fontSize: '15px', lineHeight: '1.7', color: '#e0e0e0', padding: '8px 16px 16px', margin: 0 },
   dreamMedia: { width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' },
   aiBox: {
-    margin: '0 16px 16px',
-    background: 'rgba(108,99,255,0.1)',
-    border: '1px solid rgba(108,99,255,0.3)',
-    borderRadius: '12px', padding: '14px'
+    margin: '0 16px 16px', background: 'rgba(108,99,255,0.1)',
+    border: '1px solid rgba(108,99,255,0.3)', borderRadius: '12px', padding: '14px'
   },
   aiHeader: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
-  aiTitle: {
-    fontWeight: '700', fontSize: '12px', color: '#a78bfa',
-    textTransform: 'uppercase', letterSpacing: '0.5px'
-  },
+  aiTitle: { fontWeight: '700', fontSize: '12px', color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.5px' },
   aiText: { fontSize: '13px', lineHeight: '1.6', color: '#c4b5fd', margin: 0, fontStyle: 'italic' },
   footer: {
     display: 'flex', alignItems: 'center', gap: '4px',
-    padding: '8px 12px 12px',
-    borderTop: '1px solid rgba(255,255,255,0.06)'
+    padding: '8px 12px 12px', borderTop: '1px solid rgba(255,255,255,0.06)'
   },
   actionBtn: {
     background: 'none', border: 'none', cursor: 'pointer',
@@ -488,14 +474,12 @@ const styles = {
     borderRadius: '8px', fontWeight: '500'
   },
   interpretBtn: {
-    background: 'rgba(108,99,255,0.15)',
-    border: '1px solid rgba(108,99,255,0.3)',
+    background: 'rgba(108,99,255,0.15)', border: '1px solid rgba(108,99,255,0.3)',
     color: '#a78bfa', padding: '5px 12px', borderRadius: '20px',
     cursor: 'pointer', fontSize: '12px', fontWeight: '600', marginLeft: 'auto'
   },
   commentsBox: {
-    padding: '12px 16px 16px',
-    borderTop: '1px solid rgba(255,255,255,0.06)',
+    padding: '12px 16px 16px', borderTop: '1px solid rgba(255,255,255,0.06)',
     background: 'rgba(0,0,0,0.2)'
   },
   loadingText: { fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '8px' },
