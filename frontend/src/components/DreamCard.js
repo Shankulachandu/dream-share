@@ -37,7 +37,6 @@ function DreamCard({ dream, onLike, onDelete }) {
   const myId      = localStorage.getItem('user_id');
   const isMyDream = myId && dream.owner_id && String(dream.owner_id) === String(myId);
 
-  // Share URL for this dream
   const dreamUrl  = `${window.location.origin}/dream/${dream.id}`;
   const shareText = `🌙 Check out this dream on Dream Share!\n\n"${dream.content.slice(0, 100)}..."\n\n`;
 
@@ -176,19 +175,12 @@ function DreamCard({ dream, onLike, onDelete }) {
           <button onClick={() => setShowOptions(!showOptions)} style={styles.optionsBtn}>···</button>
           {showOptions && (
             <div style={styles.optionsMenu}>
-              {/* Share option — available to everyone */}
+              {/* Share Dream — available to everyone */}
               <button
                 onClick={() => { handleNativeShare(); setShowOptions(false); }}
                 style={styles.menuOption}
               >
                 🔗 Share Dream
-              </button>
-
-              <button
-                onClick={() => { setShowShare(true); setShowOptions(false); }}
-                style={styles.menuOption}
-              >
-                📤 Share via...
               </button>
 
               {/* Delete — only for own dreams */}
@@ -219,7 +211,7 @@ function DreamCard({ dream, onLike, onDelete }) {
         </div>
       )}
 
-      {/* Share Modal */}
+      {/* Share Modal — shows on desktop since no native share */}
       {showShare && (
         <div style={styles.shareModal}>
           <div style={styles.shareCard}>
@@ -228,33 +220,28 @@ function DreamCard({ dream, onLike, onDelete }) {
               <button onClick={() => setShowShare(false)} style={styles.shareClose}>✕</button>
             </div>
 
-            {/* Share preview */}
             <div style={styles.sharePreview}>
               <p style={styles.sharePreviewText}>
                 "{dream.content.slice(0, 80)}{dream.content.length > 80 ? '...' : ''}"
               </p>
             </div>
 
-            {/* Share buttons */}
             <div style={styles.shareButtons}>
               <button onClick={handleShareWhatsApp} style={styles.shareBtn}>
                 <span style={styles.shareBtnIcon}>💬</span>
                 <span style={styles.shareBtnLabel}>WhatsApp</span>
               </button>
-
               <button onClick={handleShareTwitter} style={styles.shareBtn}>
                 <span style={styles.shareBtnIcon}>🐦</span>
                 <span style={styles.shareBtnLabel}>Twitter</span>
               </button>
-
               <button onClick={handleShareFacebook} style={styles.shareBtn}>
                 <span style={styles.shareBtnIcon}>📘</span>
                 <span style={styles.shareBtnLabel}>Facebook</span>
               </button>
-
               <button onClick={handleCopyLink} style={{
                 ...styles.shareBtn,
-                background: copied ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
+                background:  copied ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
                 borderColor: copied ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'
               }}>
                 <span style={styles.shareBtnIcon}>{copied ? '✅' : '🔗'}</span>
@@ -262,7 +249,6 @@ function DreamCard({ dream, onLike, onDelete }) {
               </button>
             </div>
 
-            {/* Link display */}
             <div style={styles.linkBox}>
               <p style={styles.linkText}>{dreamUrl}</p>
             </div>
@@ -294,8 +280,8 @@ function DreamCard({ dream, onLike, onDelete }) {
           onClick={handleLike}
           style={{
             ...styles.actionBtn,
-            color:     liked ? '#e74c3c' : '#a0a0b0',
-            transform: isLiking ? 'scale(1.3)' : 'scale(1)',
+            color:      liked ? '#e74c3c' : '#a0a0b0',
+            transform:  isLiking ? 'scale(1.3)' : 'scale(1)',
             transition: 'transform 0.1s'
           }}
         >
@@ -396,8 +382,7 @@ const styles = {
   menuOption: {
     display: 'block', width: '100%', padding: '12px 16px',
     background: 'none', border: 'none', color: 'white',
-    cursor: 'pointer', fontSize: '14px', textAlign: 'left',
-    fontWeight: '500'
+    cursor: 'pointer', fontSize: '14px', textAlign: 'left', fontWeight: '500'
   },
   menuDivider: {
     height: '1px',
@@ -422,8 +407,6 @@ const styles = {
     border: 'none', borderRadius: '8px', cursor: 'pointer',
     fontSize: '13px', fontWeight: '600'
   },
-
-  // Share Modal
   shareModal: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -431,8 +414,7 @@ const styles = {
     display: 'flex',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    zIndex: 1000,
-    padding: '0'
+    zIndex: 1000
   },
   shareCard: {
     background: '#1a1a2e',
@@ -449,35 +431,18 @@ const styles = {
     alignItems: 'center',
     marginBottom: '16px'
   },
-  shareTitle: {
-    color: 'white',
-    fontSize: '18px',
-    fontWeight: '700',
-    margin: 0
-  },
+  shareTitle: { color: 'white', fontSize: '18px', fontWeight: '700', margin: 0 },
   shareClose: {
-    background: 'rgba(255,255,255,0.1)',
-    border: 'none',
-    color: 'white',
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    cursor: 'pointer',
-    fontSize: '16px'
+    background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white',
+    width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px'
   },
   sharePreview: {
     background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '12px',
-    padding: '12px',
-    marginBottom: '20px'
+    borderRadius: '12px', padding: '12px', marginBottom: '20px'
   },
   sharePreviewText: {
-    color: '#d0d0d0',
-    fontSize: '13px',
-    lineHeight: '1.5',
-    margin: 0,
-    fontStyle: 'italic'
+    color: '#d0d0d0', fontSize: '13px', lineHeight: '1.5', margin: 0, fontStyle: 'italic'
   },
   shareButtons: {
     display: 'grid',
@@ -486,31 +451,18 @@ const styles = {
     marginBottom: '16px'
   },
   shareBtn: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '14px 8px',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '16px',
-    cursor: 'pointer'
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+    padding: '14px 8px', background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', cursor: 'pointer'
   },
   shareBtnIcon: { fontSize: '24px' },
   shareBtnLabel: { fontSize: '11px', color: '#a0a0b0', fontWeight: '500' },
   linkBox: {
     background: 'rgba(255,255,255,0.03)',
     border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '10px',
-    padding: '10px 14px'
+    borderRadius: '10px', padding: '10px 14px'
   },
-  linkText: {
-    color: '#6b7280',
-    fontSize: '12px',
-    margin: 0,
-    wordBreak: 'break-all'
-  },
-
+  linkText: { color: '#6b7280', fontSize: '12px', margin: 0, wordBreak: 'break-all' },
   content: { fontSize: '15px', lineHeight: '1.7', color: '#e0e0e0', padding: '8px 16px 16px', margin: 0 },
   dreamMedia: { width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' },
   aiBox: {
@@ -520,7 +472,10 @@ const styles = {
     borderRadius: '12px', padding: '14px'
   },
   aiHeader: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
-  aiTitle: { fontWeight: '700', fontSize: '12px', color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  aiTitle: {
+    fontWeight: '700', fontSize: '12px', color: '#a78bfa',
+    textTransform: 'uppercase', letterSpacing: '0.5px'
+  },
   aiText: { fontSize: '13px', lineHeight: '1.6', color: '#c4b5fd', margin: 0, fontStyle: 'italic' },
   footer: {
     display: 'flex', alignItems: 'center', gap: '4px',
